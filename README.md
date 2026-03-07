@@ -4,44 +4,53 @@ This is a personal/academic project to design and implement a custom compiler us
 
 ---
 
-## 🚀 Current Status: Phase 1 (Lexical Analysis)
+## 🚀 Current Status: Phase 2 (Syntax Analysis / Parsing)
 
-Currently, the **Lexer** is built and tested independently using Flex. It acts as the "Scanner", reading raw source code character-by-character and grouping them into meaningful "Tokens", stripping away useless information like spaces, tabs, and newlines.
+The project has advanced from Lexical Analysis into **Phase 2: Syntax Analysis**. The **Parser** (built with Bison) now directs the **Lexer** (built with Flex). The Lexer streams tokens to the Parser, which verifies that the token sequence forms valid grammatical statements according to our defined language rules.
 
-### Supported Tokens (Phase 1)
-The Lexer currently recognizes the following fundamental grammar constructs:
-*   **Keywords:** `int`, `if`, `else`
-*   **Data Types:** `Identifiers` (e.g., variable names starting with letters), `Numbers` (e.g., integers)
-*   **Arithmetic Operators:** `+`, `-`, `*`, `/`, `=`
+### Supported Features (Phase 2)
+The grammar has been expanded to support more complex C-like structures:
+*   **Functions:** Definition of functions (e.g., `int main() { ... }`).
+*   **Keywords:** `int`, `float`, `if`, `else`, `return`
+*   **Data Types:** Identifiers (variable names), Integer Numbers, and Floating-Point Numbers.
+*   **Arithmetic & Relational Operators:** `+`, `-`, `*`, `/`, `=`, `==`
+*   **Control Flow:** `if` and `if-else` blocks.
 *   **Punctuation/Symbols:** `(`, `)`, `{`, `}`, `;`
 
-### Project Structure (Phase 1)
+### Project Structure (Phase 2)
 | File | Description |
 | ---- | ----------- |
-| `lexer.l` | The Flex source code. Contains the Token definitions (`T_INT`, `T_ID`), regex patterns, and a standalone `main()` loop to test Lexing independently. |
-| `test.txt` | A sample piece of source code containing a variable assignment and an if/else block used to test the Lexer. |
-| `implementation_plan.md` | My comprehensive roadmap defining all 8 phases of compiler design (from Scanning to Assembly generation). |
+| `lexer.l` | The Flex source code. Defines regex patterns and returns token types (e.g., `T_INT`, `T_ID`) defined by the parser. |
+| `parser.y` | The Bison source code. Contains the Token definitions, Operator Precedence, Grammar Rules, and the main execution loop. |
+| `test.txt` | A sample piece of source code used to test the Lexer and Parser integration. |
+| `.gitignore` | Ignores auto-generated files like `lex.yy.c`, `parser.tab.*`, and executables to keep the repository clean. |
 
 ---
 
-## 💻 How to Build and Run the Lexer (Windows)
+## 💻 How to Build and Run (Windows)
 
-Because we are compiling the Flex `.l` file manually for testing Phase 1, you will need tools like **MinGW** or **MSYS2** (which include `flex` and `gcc`) installed on your Windows machine.
+We use **WinFlexBison** (or equivalent `flex` and `bison` ports) along with `gcc` (MinGW) on Windows.
 
-**1. Generate the C code from the Flex file**
-```bash
-flex lexer.l
+**1. Generate the Parser C code and Header file**
+```powershell
+win_bison -d parser.y
 ```
-*(This generates a file named `lex.yy.c` in the directory)*
+*(This generates `parser.tab.c` and `parser.tab.h`)*
 
-**2. Compile the generated C code into an executable**
-```bash
-gcc lex.yy.c -o lexer.exe
+**2. Generate the Lexer C code**
+```powershell
+win_flex lexer.l
+```
+*(This generates `lex.yy.c`)*
+
+**3. Compile both together into an executable**
+```powershell
+gcc parser.tab.c lex.yy.c -o compiler.exe
 ```
 
-**3. Run the Lexer against the sample test code**
-```bash
-.\lexer.exe test.txt
+**4. Run the Compiler against the sample test code**
+```powershell
+.\compiler.exe test.txt
 ```
 
 ### Example Test File (`test.txt`)
@@ -50,7 +59,6 @@ int main() {
     int x = 5;
     float y = 3.14;
 
-    // This is a test comment
     if (x == 5) {
         y = y + 1;
     }
@@ -60,21 +68,23 @@ int main() {
 ```
 
 ### Expected Output
+If the grammar rules are successfully matched, the output will trace the parsing steps:
 ```text
-Found keyword: int
-Found identifier: main
-Found symbol: (
-Found symbol: )
-Found symbol: {
-Found keyword: int
+Starting Syntax Analysis (Parsing)...
 ...
-Found symbol: }
+Parsed: Variable Declaration with Initialization
+...
+Parsed: If Block
+...
+Parsed: Return Statement
+Parsed: Function Definition
+Program successfully parsed!
+Finished Parsing.
 ```
-*(Note: As we expand the language grammar, unsupported characters (like floating point `.` in this test) will appropriately throw unrecognized character warnings via the lexer catch-all dot rule).*
 
 ---
 
 ## 🔜 Next Steps
-1. Push Phase 1 (Lexer) to version control.
-2. Remove standalone testing code from `lexer.l`.
-3. Introduce **Bison** (`parser.y`) for **Phase 2: Syntax Analysis/Parsing**, linking the two phases together.
+1. Advance to **Phase 3: Semantic Analysis / AST Generation** to build an Abstract Syntax Tree.
+2. Introduce a symbol table to track variable types and assignments.
+3. Handle type checking (e.g., ensuring you can't add an `int` to a struct without conversion).
