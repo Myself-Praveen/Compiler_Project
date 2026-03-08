@@ -11,6 +11,7 @@ extern int yylineno;
 extern FILE *yyin;
 
 #include "ast.h"
+#include "tac.h"
 
 void yyerror(const char *msg);
 extern ASTNode *root;
@@ -114,14 +115,15 @@ program:
     ;
 
 functions:
-    function functions { $1->next = $2; $$ = $1; }
+    function functions { $$ = create_node(AST_SEQ, "Functions"); $$->left = $1; $$->right = $2; }
     | { $$ = NULL; }
     ;
 
 function:
     type T_ID T_LPAREN T_RPAREN T_LBRACE statements T_RBRACE { 
         $$ = create_node(AST_FUNC, $2); 
-        $$->body = $6; 
+        $$->left = NULL;
+        $$->right = $6; 
     }
     ;
 
@@ -131,7 +133,7 @@ type:
     ;
 
 statements:
-    statement statements { $1->next = $2; $$ = $1; }
+    statement statements { $$ = create_node(AST_SEQ, "Statements"); $$->left = $1; $$->right = $2; }
     | { $$ = NULL; }
     ;
 
@@ -156,22 +158,24 @@ declaration:
 if_statement:
     T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE {
         $$ = create_node(AST_IF, "if");
-        $$->cond = $3;
-        $$->body = $6;
+        $$->left = $3;
+        $$->right = $6;
     }
     | T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE T_ELSE T_LBRACE statements T_RBRACE {
-        $$ = create_node(AST_IF, "if-else");
-        $$->cond = $3;
-        $$->body = $6;
-        $$->else_body = $10;
+        $$ = create_node(AST_IF_ELSE, "if-else");
+        $$->left = $3;
+        ASTNode *branches = create_node(AST_SEQ, "branches");
+        branches->left = $6;
+        branches->right = $10;
+        $$->right = branches;
     }
     ;
 
 while_statement:
     T_WHILE T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE {
         $$ = create_node(AST_WHILE, "while");
-        $$->cond = $3;
-        $$->body = $6;
+        $$->left = $3;
+        $$->right = $6;
     }
     ;
 
@@ -179,16 +183,24 @@ for_statement:
     T_FOR T_LPAREN expr_opt T_SEMI expr_opt T_SEMI expr_opt T_RPAREN T_LBRACE statements T_RBRACE {
         $$ = create_node(AST_FOR, "for");
         $$->left = $3; 
-        $$->cond = $5; 
-        $$->right = $7; 
-        $$->body = $10;
+        ASTNode *seq1 = create_node(AST_SEQ, "for_logic");
+        seq1->left = $5;
+        ASTNode *seq2 = create_node(AST_SEQ, "for_body");
+        seq2->left = $7;
+        seq2->right = $10;
+        seq1->right = seq2;
+        $$->right = seq1;
     }
     | T_FOR T_LPAREN declaration expr_opt T_SEMI expr_opt T_RPAREN T_LBRACE statements T_RBRACE {
         $$ = create_node(AST_FOR, "for");
         $$->left = $3; 
-        $$->cond = $4; 
-        $$->right = $6; 
-        $$->body = $9;
+        ASTNode *seq1 = create_node(AST_SEQ, "for_logic");
+        seq1->left = $4;
+        ASTNode *seq2 = create_node(AST_SEQ, "for_body");
+        seq2->left = $6;
+        seq2->right = $9;
+        seq1->right = seq2;
+        $$->right = seq1;
     }
     ;
 
@@ -282,6 +294,14 @@ int main(int argc, char **argv) {
         print_ast(stdout, root, 0);
     }
     
+    printf("\n=========================================\n");
+    printf("   PHASE 4: INTERMEDIATE CODE (TAC)\n");
+    printf("=========================================\n");
+    
+    if (root) {
+        generateTAC(root);
+    }
+
     printf("\n-----------------------------------------\n");
     printf("Compilation pipeline executed successfully.\n");
     return 0;
