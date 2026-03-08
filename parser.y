@@ -12,73 +12,11 @@ extern FILE *yyin;
 
 #include "ast.h"
 #include "tac.h"
+#include "symtab.h"
 
 void yyerror(const char *msg);
 extern ASTNode *root;
 
-static int tempCount  = 0;
-static int labelCount = 0;
-
-char* newTemp() {
-    char* temp = malloc(16);
-    snprintf(temp, 16, "temp%d", tempCount++);
-    return temp;
-}
-
-char* newLabel() {
-    char* label = malloc(16);
-    snprintf(label, 16, "label%d", labelCount++);
-    return label;
-}
-
-char* generateTAC(ASTNode* node) {
-    if(!node) return NULL;
-
-    if(strcmp(node->type, "ID") == 0 || strcmp(node->type, "NUM") == 0) {
-        return node->value;
-    }
-
-    if(strcmp(node->type, "+") == 0 || 
-       strcmp(node->type, "-") == 0 || 
-       strcmp(node->type, "*") == 0 ||
-       strcmp(node->type, "/") == 0 || 
-       strcmp(node->type, ">") == 0 ||
-       strcmp(node->type, "<") == 0 ||
-       strcmp(node->type, ">=") == 0 ||
-       strcmp(node->type, "<=") == 0 ||
-       strcmp(node->type, "==") == 0 ||
-       strcmp(node->type, "!=") == 0) {
-
-        char* left  = generateTAC(node->left);
-        char* right = generateTAC(node->right);
-        char* temp  = newTemp();
-
-        printf("%s = %s %s %s\n", temp, left, node->type, right);
-        return temp;
-    }
-
-    if(strcmp(node->type, "=") == 0) {
-        char* right = generateTAC(node->right);
-        printf("%s = %s\n", node->left->value, right);
-        return node->left->value;
-    }
-
-    if(strcmp(node->type, "IF") == 0) {
-        char* cond  = generateTAC(node->left);
-        char* label = newLabel();
-
-        printf("%s is False ? goto %s\n", cond, label);
-        generateTAC(node->right);
-        printf("%s:\n", label);
-
-        return NULL;
-    }
-
-    generateTAC(node->left);
-    generateTAC(node->right);
-
-    return NULL;
-}
 
 %}
 
@@ -87,7 +25,7 @@ char* generateTAC(ASTNode* node) {
     struct ASTNode *node;
 }
 
-%token <str> T_ID T_NUM T_INT T_FLOAT
+%token <str> T_ID T_NUM T_INT T_FLOAT T_STR
 %token T_RETURN T_WHILE T_FOR T_BREAK T_CONTINUE
 %token T_ASSIGN T_SEMI T_EQ T_NEQ T_GT T_LT T_GE T_LE
 %token T_IF T_ELSE 
@@ -148,10 +86,14 @@ statement:
     ;
 
 declaration:
-    type T_ID T_SEMI { $$ = create_node(AST_VAR_DECL, $2); }
+    type T_ID T_SEMI { 
+        $$ = create_node(AST_VAR_DECL, $2); 
+        $$->left = create_node(AST_TYPE, $1);
+    }
     | type T_ID T_ASSIGN expression T_SEMI { 
         $$ = create_node(AST_VAR_DECL, $2); 
-        $$->left = $4; 
+        $$->left = create_node(AST_TYPE, $1);
+        $$->right = $4; 
     }
     ;
 
@@ -248,6 +190,7 @@ expression:
     | T_LPAREN expression T_RPAREN   { $$ = $2; }
     | T_ID                           { $$ = create_node(AST_ID, $1); }
     | T_NUM                          { $$ = create_node(AST_NUM, $1); }
+    | T_STR                          { $$ = create_node(AST_STR, $1); }
     ;
 
 %%
@@ -295,7 +238,24 @@ int main(int argc, char **argv) {
     }
     
     printf("\n=========================================\n");
-    printf("   PHASE 4: INTERMEDIATE CODE (TAC)\n");
+    printf("   PHASE 4: SEMANTIC ANALYSIS (SYMBOL)\n");
+    printf("=========================================\n");
+    
+    if (root) {
+        init_symtab();
+        check_semantics(root);
+        print_symtab();
+
+        if(get_semantic_errors() > 0) {
+            printf("\nCompilation halted: %d semantic errors.\n", get_semantic_errors());
+            return 1;
+        } else {
+            printf("\nSemantics validated successfully. No errors found.\n");
+        }
+    }
+
+    printf("\n=========================================\n");
+    printf("   PHASE 5: INTERMEDIATE CODE (TAC)\n");
     printf("=========================================\n");
     
     if (root) {

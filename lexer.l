@@ -21,6 +21,7 @@
 
 [a-zA-Z_][a-zA-Z0-9_]* { printf("%-10s %s\n", "ID", yytext); yylval.str = strdup(yytext); return T_ID; }
 [0-9]+(\.[0-9]+)? { printf("%-10s %s\n", "NUM", yytext); yylval.str = strdup(yytext); return T_NUM; }
+\"([^\"\\]|\\.)*\" { printf("%-10s %s\n", "STRING", yytext); yylval.str = strdup(yytext); return T_STR; }
 
 "+" { printf("%-10s %s\n", "PLUS", yytext); return T_PLUS; }
 "-" { printf("%-10s %s\n", "MINUS", yytext); return T_MINUS; }
