@@ -4,17 +4,18 @@ This is a personal/academic project to design and implement a custom compiler us
 
 ---
 
-## 🚀 Current Status: Phase 4 (Intermediate Code Generation - TAC)
+## 🚀 Current Status: Phase 5 (Intermediate Code Generation - TAC)
 
-The project has advanced through **Phase 1 (Lexical Analysis)**, **Phase 2 (Syntax Analysis)**, and **Phase 3 (Abstract Syntax Tree)**, and is now actively generating **Phase 4: Intermediate Code Generation (Three-Address Code)**. 
+The project has advanced through **Phase 1 (Lexical Analysis)**, **Phase 2 (Syntax Analysis)**, **Phase 3 (Abstract Syntax Tree)**, **Phase 4 (Semantic Analysis)** and is now actively generating **Phase 5: Intermediate Code Generation (Three-Address Code)**. 
 
-The Lexer streams tokens, the Parser validates the grammar and constructs a strict binary AST representation, and the custom TAC generator linearly resolves that AST into intermediate Three-Address Code instructions format.
+The Lexer streams tokens, the Parser validates the grammar and constructs a strict binary AST representation, the Semantic Analyzer validates token types and scope logic, and the custom TAC generator linearly resolves that AST into intermediate Three-Address Code instructions format.
 
 ### Supported Features
 The grammar has been expanded to support more complex C-like structures and perfectly match intermediate logic instructions:
 *   **Functions:** Definition of functions (e.g., `int main() { ... }`).
 *   **Keywords:** `int`, `float`, `if`, `else`, `while`, `for`, `break`, `continue`, `return`
-*   **Data Types:** Identifiers (variable names), Integer Numbers, and Floating-Point Numbers.
+*   **Data Types:** Identifiers (variable names), Integer Numbers, Floating-Point Numbers, and Strings.
+*   **Semantic Checking:** Strict type checking and scope tracing preventing mismatched assignments and undeclared usage.
 *   **Arithmetic & Relational Operators:** `+`, `-`, `*`, `/`, `=`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `&&`, `||`, `!`, `++`, `--`
 *   **Control Flow:** `if`, `if-else`, `while`, and `for` loop blocks dynamically resolving into `goto` labels natively.
 *   **Punctuation/Symbols:** `(`, `)`, `{`, `}`, `;`
@@ -25,8 +26,9 @@ The grammar has been expanded to support more complex C-like structures and perf
 | `lexer.l` | The Flex source code. Defines regex patterns and loudly dumps Phase 1 tokens (e.g., `INT`, `ID`). |
 | `parser.y` | The Bison source code. Contains the Token definitions, Operator Precedence, Grammar Rules tracking the root AST node, and the main phased loop. |
 | `ast.h` / `ast.c` | Custom strictly binary tree mapping to allocate, link, and beautifully print the ASCII structural tree branches. |
+| `symtab.h` / `symtab.c` | The Semantic Analyzer managing scopes, checking types (int vs string), and halting on errors. |
 | `tac.h` / `tac.c` | The TAC generator resolving binary branches into linearly executable logical components using temporary variables. |
-| `test.txt` | A sample piece of source code used to test the full 4 phase integration. |
+| `test.txt` | A sample piece of source code used to test the full 5-phase integration. |
 
 ---
 
@@ -41,9 +43,9 @@ win_flex lexer.l
 ```
 
 **2. Compile into an executable**
-*(Notice we are now compiling `tac.c` as well)*
+*(Notice we are now compiling `tac.c` and `symtab.c` as well)*
 ```powershell
-gcc parser.tab.c lex.yy.c ast.c tac.c -o compiler.exe
+gcc parser.tab.c lex.yy.c ast.c tac.c symtab.c -o compiler.exe
 ```
 
 **3. Run the Compiler against the sample test code**
@@ -60,7 +62,7 @@ int main() {
 ```
 
 ### Expected Output
-The compiler now dumps all 4 phases sequentially in one run:
+The compiler now dumps all 5 phases sequentially in one run:
 ```text
 =========================================
    PHASE 1: LEXICAL ANALYSIS (TOKENS)
@@ -84,13 +86,27 @@ Program
     └── Function(main)
         └── Block
             ├── Decl(x)
-            │   └── Value(5)
+            │   └── Type(int)
             └── Block
-                └── Return
-                    └── ID(x)
+                ├── Assign
+                │   ├── ID(x)
+                │   └── Value(5)
+                └── Block
+                    └── Return
+                        └── ID(x)
 
 =========================================
-   PHASE 4: INTERMEDIATE CODE (TAC)
+   PHASE 4: SEMANTIC ANALYSIS (SYMBOL)
+=========================================
+NAME                 KIND            SCOPE      STATUS
+----------------------------------------------------------
+main                 Function        0          Active
+x                    int             1          Closed
+
+Semantics validated successfully. No errors found.
+
+=========================================
+   PHASE 5: INTERMEDIATE CODE (TAC)
 =========================================
 
 main:
@@ -106,6 +122,5 @@ Compilation pipeline executed successfully.
 ---
 
 ## 🔜 Next Steps
-1. Advance into **Semantic Analysis / Context validation** (Skipped temporarily during TAC scaling).
-2. Introduce a symbol table to track variable types and assignments.
-3. Advance to **Target Code Generation (Assembly)** processing the TAC outputs.
+1. Advance to **Phase 6: Code Optimization** (Constant folding, dead code elimination).
+2. Advance to **Phase 7: Target Code Generation (Assembly)** translating TAC logic into real machine instructions.
