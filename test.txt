@@ -1,20 +1,4 @@
 int main() {
-    int i = 0;
-    while (i < 10 && i != -1) {
-        i++;
-        if (i == 5) {
-            continue;
-        }
-    }
-
-    for (int j = 10; j > 0; j--) {
-        if (j <= 2 || !j) {
-            break;
-        }
-    }
-
-    float z;
-    z = -3.14 + 5.0;
-
-    return 0;
+    int x = 5;
+    return x;
 }
