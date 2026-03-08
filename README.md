@@ -4,26 +4,26 @@ This is a personal/academic project to design and implement a custom compiler us
 
 ---
 
-## 🚀 Current Status: Phase 2 (Syntax Analysis / Parsing)
+## 🚀 Current Status: Phase 3 (Abstract Syntax Tree Generation)
 
-The project has advanced from Lexical Analysis into **Phase 2: Syntax Analysis**. The **Parser** (built with Bison) now directs the **Lexer** (built with Flex). The Lexer streams tokens to the Parser, which verifies that the token sequence forms valid grammatical statements according to our defined language rules.
+The project has advanced through **Phase 1 (Lexical Analysis)** and **Phase 2 (Syntax Analysis)** and is now fully generating a visual **Phase 3: Abstract Syntax Tree (AST)**. The Lexer streams tokens, the Parser validates the grammar, and the parser rules construct a memory-mapped AST which is printed using beautiful ASCII tree characters.
 
-### Supported Features (Phase 2)
+### Supported Features
 The grammar has been expanded to support more complex C-like structures:
 *   **Functions:** Definition of functions (e.g., `int main() { ... }`).
-*   **Keywords:** `int`, `float`, `if`, `else`, `return`
+*   **Keywords:** `int`, `float`, `if`, `else`, `while`, `for`, `break`, `continue`, `return`
 *   **Data Types:** Identifiers (variable names), Integer Numbers, and Floating-Point Numbers.
-*   **Arithmetic & Relational Operators:** `+`, `-`, `*`, `/`, `=`, `==`
-*   **Control Flow:** `if` and `if-else` blocks.
+*   **Arithmetic & Relational Operators:** `+`, `-`, `*`, `/`, `=`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `&&`, `||`, `!`, `++`, `--`
+*   **Control Flow:** `if`, `if-else`, `while`, and `for` loop blocks.
 *   **Punctuation/Symbols:** `(`, `)`, `{`, `}`, `;`
 
-### Project Structure (Phase 2)
+### Project Structure
 | File | Description |
 | ---- | ----------- |
-| `lexer.l` | The Flex source code. Defines regex patterns and returns token types (e.g., `T_INT`, `T_ID`) defined by the parser. |
-| `parser.y` | The Bison source code. Contains the Token definitions, Operator Precedence, Grammar Rules, and the main execution loop. |
-| `test.txt` | A sample piece of source code used to test the Lexer and Parser integration. |
-| `.gitignore` | Ignores auto-generated files like `lex.yy.c`, `parser.tab.*`, and executables to keep the repository clean. |
+| `lexer.l` | The Flex source code. Defines regex patterns and loudly dumps Phase 1 tokens (e.g., `INT`, `ID`). |
+| `parser.y` | The Bison source code. Contains the Token definitions, Operator Precedence, Grammar Rules tracking the root AST node, and the main phased loop. |
+| `ast.h` / `ast.c` | Custom code to allocate, map, and beautifully print the ASCII structural tree branches. |
+| `test.txt` | A sample piece of source code used to test the full Lexer -> Parser -> AST integration. |
 
 ---
 
@@ -31,24 +31,18 @@ The grammar has been expanded to support more complex C-like structures:
 
 We use **WinFlexBison** (or equivalent `flex` and `bison` ports) along with `gcc` (MinGW) on Windows.
 
-**1. Generate the Parser C code and Header file**
+**1. Generate the Parser and Lexer Code**
 ```powershell
 win_bison -d parser.y
-```
-*(This generates `parser.tab.c` and `parser.tab.h`)*
-
-**2. Generate the Lexer C code**
-```powershell
 win_flex lexer.l
 ```
-*(This generates `lex.yy.c`)*
 
-**3. Compile both together into an executable**
+**2. Compile into an executable**
 ```powershell
-gcc parser.tab.c lex.yy.c -o compiler.exe
+gcc parser.tab.c lex.yy.c ast.c -o compiler.exe
 ```
 
-**4. Run the Compiler against the sample test code**
+**3. Run the Compiler against the sample test code**
 ```powershell
 .\compiler.exe test.txt
 ```
@@ -57,34 +51,45 @@ gcc parser.tab.c lex.yy.c -o compiler.exe
 ```c
 int main() {
     int x = 5;
-    float y = 3.14;
-
-    if (x == 5) {
-        y = y + 1;
-    }
-
-    return 0;
+    return x;
 }
 ```
 
 ### Expected Output
-If the grammar rules are successfully matched, the output will trace the parsing steps:
+The compiler now dumps all 3 phases sequentially in one run:
 ```text
-Starting Syntax Analysis (Parsing)...
+=========================================
+   PHASE 1: LEXICAL ANALYSIS (TOKENS)
+=========================================
+INT        int
+ID         main
+LPAREN     (
+RPAREN     )
 ...
-Parsed: Variable Declaration with Initialization
-...
-Parsed: If Block
-...
-Parsed: Return Statement
-Parsed: Function Definition
-Program successfully parsed!
-Finished Parsing.
+
+=========================================
+   PHASE 2: SYNTAX ANALYSIS (PARSING)
+=========================================
+Grammar validated successfully. No syntax errors found.
+
+=========================================
+   PHASE 3: ABSTRACT SYNTAX TREE (AST)
+=========================================
+Program
+└── Function(main)
+    └── Body
+        ├── Decl(x)
+        │   └── Value(5)
+        └── Return
+            └── ID(x)
+
+-----------------------------------------
+Compilation pipeline executed successfully.
 ```
 
 ---
 
 ## 🔜 Next Steps
-1. Advance to **Phase 3: Semantic Analysis / AST Generation** to build an Abstract Syntax Tree.
+1. Advance to **Semantic Analysis / Context validation**.
 2. Introduce a symbol table to track variable types and assignments.
-3. Handle type checking (e.g., ensuring you can't add an `int` to a struct without conversion).
+3. Handle type checking (e.g., preventing type mismatches silently).
