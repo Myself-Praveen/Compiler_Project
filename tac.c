@@ -61,59 +61,58 @@ char* generateExprTAC(ASTNode *node) {
 char* generateStmtTAC(ASTNode *node) {
     if(!node) return NULL;
 
-    if(node->type == AST_SEQ || node->type == AST_PROG) {
+    if(node->type == AST_PROG) {
         generateStmtTAC(node->left);
-        generateStmtTAC(node->right);
         return NULL;
     }
 
     if(node->type == AST_FUNC) {
         printf("\n%s:\n", node->value);
         printf("BeginFunc\n");
-        generateStmtTAC(node->right);
+        generateStmtTAC(node->body);
         printf("EndFunc\n");
-        return NULL;
+        return generateStmtTAC(node->next);
     }
 
     if(node->type == AST_ASSIGN) {
         char* right = generateExprTAC(node->right);
         printf("%s = %s\n", node->left->value, right);
-        return node->left->value;
+        return generateStmtTAC(node->next);
     }
 
     else if(node->type == AST_VAR_DECL) {
-        if(node->left) {
-            char* right = generateExprTAC(node->left);
+        if(node->right) {
+            char* right = generateExprTAC(node->right);
             printf("%s = %s\n", node->value, right);
         }
-        return node->value;
+        return generateStmtTAC(node->next);
     }
 
     else if(node->type == AST_IF) {
-        char* condTemp = generateExprTAC(node->left);
+        char* condTemp = generateExprTAC(node->cond);
         char* label = newLabel();
 
         printf("ifFalse %s goto %s\n", condTemp, label);
-        generateStmtTAC(node->right);
+        generateStmtTAC(node->body);
         printf("%s:\n", label);
 
-        return NULL;
+        return generateStmtTAC(node->next);
     }
     
     else if(node->type == AST_IF_ELSE) {
-        char* condTemp = generateExprTAC(node->left);
+        char* condTemp = generateExprTAC(node->cond);
         char* lfalse = newLabel();
         char* lend = newLabel();
 
         printf("ifFalse %s goto %s\n", condTemp, lfalse);
-        generateStmtTAC(node->right->left); // true block
+        generateStmtTAC(node->body);
         printf("goto %s\n", lend);
         
         printf("%s:\n", lfalse);
-        generateStmtTAC(node->right->right); // else block
+        generateStmtTAC(node->else_body);
         printf("%s:\n", lend);
 
-        return NULL;
+        return generateStmtTAC(node->next);
     }
 
     else if(node->type == AST_WHILE) {
@@ -121,19 +120,19 @@ char* generateStmtTAC(ASTNode *node) {
         char* lend = newLabel();
 
         printf("%s:\n", lstart);
-        char* cond = generateExprTAC(node->left);
+        char* cond = generateExprTAC(node->cond);
         printf("ifFalse %s goto %s\n", cond, lend);
 
-        generateStmtTAC(node->right);
+        generateStmtTAC(node->body);
         
         printf("goto %s\n", lstart);
         printf("%s:\n", lend);
 
-        return NULL;
+        return generateStmtTAC(node->next);
     }
     
     else if(node->type == AST_FOR) {
-        generateStmtTAC(node->left); // initialization
+        generateStmtTAC(node->left);
         
         char* lstart = newLabel();
         char* lend = newLabel();
@@ -141,21 +140,21 @@ char* generateStmtTAC(ASTNode *node) {
         printf("%s:\n", lstart);
         
         char* cond = NULL;
-        if(node->right->left) { // condition exists
-            cond = generateExprTAC(node->right->left);
+        if(node->cond) {
+            cond = generateExprTAC(node->cond);
             printf("ifFalse %s goto %s\n", cond, lend);
         }
 
-        generateStmtTAC(node->right->right->right); // body
+        generateStmtTAC(node->body);
         
-        if (node->right->right->left) { // update exists
-            if (node->right->right->left->type == AST_ASSIGN) {
-                char* r = generateExprTAC(node->right->right->left->right);
-                printf("%s = %s\n", node->right->right->left->left->value, r);
-            } else if (node->right->right->left->type == AST_UNOP) {
-                generateExprTAC(node->right->right->left);
+        if (node->right) {
+            if (node->right->type == AST_ASSIGN) {
+                char* r = generateExprTAC(node->right->right);
+                printf("%s = %s\n", node->right->left->value, r);
+            } else if (node->right->type == AST_UNOP) {
+                generateExprTAC(node->right);
             } else {
-                generateStmtTAC(node->right->right->left);
+                generateStmtTAC(node->right);
             }
         }
         
@@ -164,7 +163,7 @@ char* generateStmtTAC(ASTNode *node) {
             printf("%s:\n", lend);
         }
 
-        return NULL;
+        return generateStmtTAC(node->next);
     }
 
     else if(node->type == AST_RETURN) {
@@ -174,12 +173,10 @@ char* generateStmtTAC(ASTNode *node) {
         } else {
             printf("Return\n");
         }
-        return NULL;
+        return generateStmtTAC(node->next);
     }
 
-    generateStmtTAC(node->left);
-    generateStmtTAC(node->right);
-
+    generateStmtTAC(node->next);
     return NULL;
 }
 

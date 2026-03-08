@@ -13,6 +13,10 @@ ASTNode* create_node(ASTNodeType t, char *val) {
     }
     n->left = NULL;
     n->right = NULL;
+    n->cond = NULL;
+    n->body = NULL;
+    n->else_body = NULL;
+    n->next = NULL;
     return n;
 }
 
@@ -57,13 +61,18 @@ void print_ast_internal(FILE *out, ASTNode *node, char *prefix, int last_node, i
         else snprintf(new_pfx, sizeof(new_pfx), "%s\xE2\x94\x82   ", prefix);
     }
 
-    if(node->left && !node->right) {
-        print_ast_internal(out, node->left, new_pfx, 1, 0);
-    } else if(!node->left && node->right) {
-        print_ast_internal(out, node->right, new_pfx, 1, 0);
-    } else if(node->left && node->right) {
-        print_ast_internal(out, node->left, new_pfx, 0, 0);
-        print_ast_internal(out, node->right, new_pfx, 1, 0);
+    ASTNode* children[6];
+    int child_count = 0;
+    
+    if (node->left) children[child_count++] = node->left;
+    if (node->right) children[child_count++] = node->right;
+    if (node->cond) children[child_count++] = node->cond;
+    if (node->body) children[child_count++] = node->body;
+    if (node->else_body) children[child_count++] = node->else_body;
+    if (node->next) children[child_count++] = node->next;
+
+    for (int i = 0; i < child_count; i++) {
+        print_ast_internal(out, children[i], new_pfx, (i == child_count - 1), 0);
     }
 }
 

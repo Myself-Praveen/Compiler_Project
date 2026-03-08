@@ -15,6 +15,10 @@ typedef struct ASTNode {
     char *value;
     struct ASTNode *left;
     struct ASTNode *right;
+    struct ASTNode *cond;
+    struct ASTNode *body;
+    struct ASTNode *else_body;
+    struct ASTNode *next;
 } ASTNode;
 
 ASTNode* create_node(ASTNodeType t, char *val);

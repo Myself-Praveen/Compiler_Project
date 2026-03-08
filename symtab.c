@@ -103,19 +103,31 @@ const char* get_expr_type(ASTNode *node) {
 void check_semantics(ASTNode *node) {
     if(!node) return;
 
+    if(node->type == AST_PROG) {
+        check_semantics(node->left);
+        return;
+    }
+
     if(node->type == AST_FUNC) {
         add_symbol(node->value, "Function");
         enter_scope();
-        check_semantics(node->right);
+        check_semantics(node->body);
         exit_scope();
+        check_semantics(node->next);
         return;
     }
     
     if(node->type == AST_FOR || node->type == AST_WHILE || node->type == AST_IF || node->type == AST_IF_ELSE) {
-        enter_scope();
         check_semantics(node->left);
+        check_semantics(node->cond); 
         check_semantics(node->right);
+        
+        enter_scope();
+        check_semantics(node->body);
+        check_semantics(node->else_body);
         exit_scope();
+        
+        check_semantics(node->next);
         return;
     }
 
@@ -136,6 +148,7 @@ void check_semantics(ASTNode *node) {
 
         check_semantics(node->left);
         check_semantics(node->right);
+        check_semantics(node->next);
         return;
     }
 
@@ -154,6 +167,7 @@ void check_semantics(ASTNode *node) {
             }
         }
         check_semantics(node->right);
+        check_semantics(node->next);
         return;
     }
 
@@ -162,11 +176,16 @@ void check_semantics(ASTNode *node) {
             printf("Semantic Error: Usage of undeclared identifier '%s'.\n", node->value);
             semantic_errors++;
         }
+        check_semantics(node->next);
         return;
     }
 
     check_semantics(node->left);
     check_semantics(node->right);
+    check_semantics(node->cond);
+    check_semantics(node->body);
+    check_semantics(node->else_body);
+    check_semantics(node->next);
 }
 
 int get_semantic_errors() {
