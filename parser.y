@@ -14,6 +14,71 @@ extern FILE *yyin;
 
 void yyerror(const char *msg);
 extern ASTNode *root;
+
+static int tempCount  = 0;
+static int labelCount = 0;
+
+char* newTemp() {
+    char* temp = malloc(16);
+    snprintf(temp, 16, "temp%d", tempCount++);
+    return temp;
+}
+
+char* newLabel() {
+    char* label = malloc(16);
+    snprintf(label, 16, "label%d", labelCount++);
+    return label;
+}
+
+char* generateTAC(ASTNode* node) {
+    if(!node) return NULL;
+
+    if(strcmp(node->type, "ID") == 0 || strcmp(node->type, "NUM") == 0) {
+        return node->value;
+    }
+
+    if(strcmp(node->type, "+") == 0 || 
+       strcmp(node->type, "-") == 0 || 
+       strcmp(node->type, "*") == 0 ||
+       strcmp(node->type, "/") == 0 || 
+       strcmp(node->type, ">") == 0 ||
+       strcmp(node->type, "<") == 0 ||
+       strcmp(node->type, ">=") == 0 ||
+       strcmp(node->type, "<=") == 0 ||
+       strcmp(node->type, "==") == 0 ||
+       strcmp(node->type, "!=") == 0) {
+
+        char* left  = generateTAC(node->left);
+        char* right = generateTAC(node->right);
+        char* temp  = newTemp();
+
+        printf("%s = %s %s %s\n", temp, left, node->type, right);
+        return temp;
+    }
+
+    if(strcmp(node->type, "=") == 0) {
+        char* right = generateTAC(node->right);
+        printf("%s = %s\n", node->left->value, right);
+        return node->left->value;
+    }
+
+    if(strcmp(node->type, "IF") == 0) {
+        char* cond  = generateTAC(node->left);
+        char* label = newLabel();
+
+        printf("%s is False ? goto %s\n", cond, label);
+        generateTAC(node->right);
+        printf("%s:\n", label);
+
+        return NULL;
+    }
+
+    generateTAC(node->left);
+    generateTAC(node->right);
+
+    return NULL;
+}
+
 %}
 
 %union {
