@@ -13,6 +13,7 @@ extern FILE *yyin;
 #include "ast.h"
 #include "tac.h"
 #include "symtab.h"
+#include "opt.h"
 
 void yyerror(const char *msg);
 extern ASTNode *root;
@@ -255,6 +256,21 @@ int main(int argc, char **argv) {
     printf("=========================================\n");
     
     if (root) {
+        generateTAC(root);
+    }
+
+    printf("\n=========================================\n");
+    printf("   PHASE 6: CODE OPTIMIZATION (AST/TAC)\n");
+    printf("=========================================\n");
+    
+    if (root) {
+        printf("Applying Constant Folding Optimization...\n\n");
+        optimize_ast(root);
+        
+        printf("[ Optimized AST Structure ]\n");
+        print_ast(stdout, root, 0);
+
+        printf("\n[ Optimized Intermediate Code (TAC) ]\n");
         generateTAC(root);
     }
 
