@@ -4,11 +4,11 @@ This is a personal/academic project to design and implement a custom compiler us
 
 ---
 
-## 🚀 Current Status: Phase 5 (Intermediate Code Generation - TAC)
+## 🚀 Current Status: Phase 6 (Code Optimization)
 
-The project has advanced through **Phase 1 (Lexical Analysis)**, **Phase 2 (Syntax Analysis)**, **Phase 3 (Abstract Syntax Tree)**, **Phase 4 (Semantic Analysis)** and is now actively generating **Phase 5: Intermediate Code Generation (Three-Address Code)**. 
+The project has advanced through **Phase 1 (Lexical Analysis)**, **Phase 2 (Syntax Analysis)**, **Phase 3 (Abstract Syntax Tree)**, **Phase 4 (Semantic Analysis)**, **Phase 5 (TAC Generation)**, and is now actively performing **Phase 6: Code Optimization**. 
 
-The Lexer streams tokens, the Parser validates the grammar and constructs a strict binary AST representation, the Semantic Analyzer validates token types and scope logic, and the custom TAC generator linearly resolves that AST into intermediate Three-Address Code instructions format.
+The Lexer streams tokens, the Parser validates the grammar and constructs a structural AST, the Semantic Analyzer validates token types and scope logic, the custom TAC generator resolves that AST into linearly executable intermediate Three-Address Code, and the **Optimizer** performs deep AST constant folding to pre-calculate mathematical logic before runtime.
 
 ### Supported Features
 The grammar has been expanded to support more complex C-like structures and perfectly match intermediate logic instructions:
@@ -17,6 +17,7 @@ The grammar has been expanded to support more complex C-like structures and perf
 *   **Data Types:** Identifiers (variable names), Integer Numbers, Floating-Point Numbers, and Strings.
 *   **Semantic Checking:** Strict type checking and scope tracing preventing mismatched assignments and undeclared usage.
 *   **Arithmetic & Relational Operators:** `+`, `-`, `*`, `/`, `=`, `==`, `!=`, `<`, `>`, `<=`, `>=`, `&&`, `||`, `!`, `++`, `--`
+*   **Constant Folding Optimization:** Pre-calculates static nested AST binary/unary operations directly into primitive results, stripping bloated temporary variables from the TAC backend.
 *   **Control Flow:** `if`, `if-else`, `while`, and `for` loop blocks dynamically resolving into `goto` labels natively.
 *   **Punctuation/Symbols:** `(`, `)`, `{`, `}`, `;`
 
@@ -27,8 +28,9 @@ The grammar has been expanded to support more complex C-like structures and perf
 | `parser.y` | The Bison source code. Contains the Token definitions, Operator Precedence, Grammar Rules tracking the root AST node, and the main phased loop. |
 | `ast.h` / `ast.c` | Custom strictly binary tree mapping to allocate, link, and beautifully print the ASCII structural tree branches. |
 | `symtab.h` / `symtab.c` | The Semantic Analyzer managing scopes, checking types (int vs string), and halting on errors. |
-| `tac.h` / `tac.c` | The TAC generator resolving binary branches into linearly executable logical components using temporary variables. |
-| `test.txt` | A sample piece of source code used to test the full 5-phase integration. |
+| `tac.h` / `tac.c` | The TAC generator resolving branches into linearly executable logical components using temporary variables. |
+| `opt.h` / `opt.c` | The Code Optimizer, navigating bottom-up through the AST natively collapsing dead logic and folding constants. |
+| `test.txt` | A sample piece of source code used to test the full 6-phase integration. |
 
 ---
 
@@ -43,9 +45,9 @@ win_flex lexer.l
 ```
 
 **2. Compile into an executable**
-*(Notice we are now compiling `tac.c` and `symtab.c` as well)*
+*(Notice we are now compiling `opt.c` as well)*
 ```powershell
-gcc parser.tab.c lex.yy.c ast.c tac.c symtab.c -o compiler.exe
+gcc parser.tab.c lex.yy.c ast.c tac.c symtab.c opt.c -o compiler.exe
 ```
 
 **3. Run the Compiler against the sample test code**
@@ -62,7 +64,7 @@ int main() {
 ```
 
 ### Expected Output
-The compiler now dumps all 5 phases sequentially in one run:
+The compiler now dumps all 6 phases sequentially in one run, demonstrating the raw pre-optimized vs post-optimized configurations!
 ```text
 =========================================
    PHASE 1: LEXICAL ANALYSIS (TOKENS)
@@ -85,15 +87,26 @@ Program
 └── Block
     └── Function(main)
         └── Block
-            ├── Decl(x)
-            │   └── Type(int)
-            └── Block
-                ├── Assign
-                │   ├── ID(x)
-                │   └── Value(5)
-                └── Block
-                    └── Return
-                        └── ID(x)
+            └── Decl(x)
+                ├── Type(int)
+                └── Assign
+                    ├── ID(x)
+                    ├── BinOp(+)
+                    │   ├── Value(10)
+                    │   └── BinOp(*)
+                    │       ├── Value(5)
+                    │       └── Value(2)
+                    └── Decl(y)
+                        ├── Type(int)
+                        └── Assign
+                            ├── ID(y)
+                            ├── BinOp(+)
+                            │   ├── ID(x)
+                            │   └── BinOp(/)
+                            │       ├── Value(100)
+                            │       └── Value(10)
+                            └── Return
+                                └── ID(y)
 
 =========================================
    PHASE 4: SEMANTIC ANALYSIS (SYMBOL)
@@ -102,6 +115,7 @@ NAME                 KIND            SCOPE      STATUS
 ----------------------------------------------------------
 main                 Function        0          Active
 x                    int             1          Closed
+y                    int             1          Closed
 
 Semantics validated successfully. No errors found.
 
@@ -111,8 +125,46 @@ Semantics validated successfully. No errors found.
 
 main:
 BeginFunc
-x = 5
-Return x
+t0 = 5 * 2
+t1 = 10 + t0
+x = t1
+t2 = 100 / 10
+t3 = x + t2
+y = t3
+Return y
+EndFunc
+
+=========================================
+   PHASE 6: CODE OPTIMIZATION (AST/TAC)
+=========================================
+Applying Constant Folding Optimization...
+
+[ Optimized AST Structure ]
+Program
+└── Function(main)
+    └── Decl(x)
+        ├── Type(int)
+        └── Assign
+            ├── ID(x)
+            ├── Value(20)
+            └── Decl(y)
+                ├── Type(int)
+                └── Assign
+                    ├── ID(y)
+                    ├── BinOp(+)
+                    │   ├── ID(x)
+                    │   └── Value(10)
+                    └── Return
+                        └── ID(y)
+
+[ Optimized Intermediate Code (TAC) ]
+
+main:
+BeginFunc
+x = 20
+t0 = x + 10
+y = t0
+Return y
 EndFunc
 
 -----------------------------------------
@@ -122,5 +174,4 @@ Compilation pipeline executed successfully.
 ---
 
 ## 🔜 Next Steps
-1. Advance to **Phase 6: Code Optimization** (Constant folding, dead code elimination).
-2. Advance to **Phase 7: Target Code Generation (Assembly)** translating TAC logic into real machine instructions.
+1. Advance to **Phase 7: Target Code Generation (Assembly)** translating optimized TAC logic into real machine instructions.
