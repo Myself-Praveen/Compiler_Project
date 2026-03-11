@@ -22,7 +22,7 @@ char* newLabel() {
 char* generateExprTAC(ASTNode *node) {
     if(!node) return NULL;
 
-    if(node->type == AST_ID || node->type == AST_NUM) {
+    if(node->type == AST_ID || node->type == AST_NUM || node->type == AST_STR) {
         return node->value;
     }
 
@@ -77,6 +77,21 @@ char* generateStmtTAC(ASTNode *node) {
     if(node->type == AST_ASSIGN) {
         char* right = generateExprTAC(node->right);
         printf("%s = %s\n", node->left->value, right);
+        return generateStmtTAC(node->next);
+    }
+
+    else if(node->type == AST_RETURN) {
+        if(node->left) {
+            char* retTemp = generateExprTAC(node->left);
+            printf("Return %s\n", retTemp);
+        } else {
+            printf("Return\n");
+        }
+        return generateStmtTAC(node->next);
+    }
+    else if(node->type == AST_PRINT) {
+        char* valTemp = generateExprTAC(node->left);
+        printf("Print %s\n", valTemp);
         return generateStmtTAC(node->next);
     }
 

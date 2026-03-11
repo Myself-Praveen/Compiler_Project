@@ -18,6 +18,7 @@
 "break"             { printf("%-10s %s\n", "BREAK",    yytext); return T_BREAK; }
 "continue"          { printf("%-10s %s\n", "CONTINUE", yytext); return T_CONTINUE; }
 "return"            { printf("%-10s %s\n", "RETURN",   yytext); return T_RETURN; }
+"print"             { printf("%-10s %s\n", "PRINT",    yytext); return T_PRINT; }
 
 [a-zA-Z_][a-zA-Z0-9_]* { printf("%-10s %s\n", "ID",       yytext); yylval.str = strdup(yytext); return T_ID; }
 [0-9]+(\.[0-9]+)?   { printf("%-10s %s\n", "NUM",      yytext); yylval.str = strdup(yytext); return T_NUM; }

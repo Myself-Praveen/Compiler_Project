@@ -49,6 +49,7 @@ void print_ast_internal(FILE *out, ASTNode *node, char *prefix, int last_node, i
         case AST_SEQ: snprintf(buf, sizeof(buf), "Block"); break;
         case AST_STR: snprintf(buf, sizeof(buf), "String(%s)", node->value); break;
         case AST_TYPE: snprintf(buf, sizeof(buf), "Type(%s)", node->value); break;
+        case AST_PRINT: snprintf(buf, sizeof(buf), "Print"); break;
         default: snprintf(buf, sizeof(buf), "Unknown"); break;
     }
     fprintf(out, "%s\n", buf);

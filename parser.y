@@ -14,6 +14,7 @@ extern FILE *yyin;
 #include "tac.h"
 #include "symtab.h"
 #include "opt.h"
+#include "asm.h"
 
 void yyerror(const char *msg);
 extern ASTNode *root;
@@ -27,7 +28,7 @@ extern ASTNode *root;
 }
 
 %token <str> T_ID T_NUM T_INT T_FLOAT T_STR
-%token T_RETURN T_WHILE T_FOR T_BREAK T_CONTINUE
+%token T_RETURN T_PRINT T_WHILE T_FOR T_BREAK T_CONTINUE
 %token T_ASSIGN T_SEMI T_EQ T_NEQ T_GT T_LT T_GE T_LE
 %token T_IF T_ELSE 
 %token T_PLUS T_MINUS T_MUL T_DIV T_INC T_DEC
@@ -89,6 +90,7 @@ statement:
     | for_statement { $$ = $1; }
     | jump_statement { $$ = $1; }
     | return_statement { $$ = $1; }
+    | T_PRINT expression T_SEMI { $$ = create_node(AST_PRINT, "print"); $$->left = $2; }
     | expr_opt T_SEMI { $$ = $1; }
     ;
 
@@ -272,6 +274,14 @@ int main(int argc, char **argv) {
 
         printf("\n[ Optimized Intermediate Code (TAC) ]\n");
         generateTAC(root);
+    }
+
+    printf("\n=========================================\n");
+    printf("   PHASE 7: TARGET CODE GENERATION (ASM)\n");
+    printf("=========================================\n");
+    
+    if (root) {
+        generateAssembly(root);
     }
 
     printf("\n-----------------------------------------\n");

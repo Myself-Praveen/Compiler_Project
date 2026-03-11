@@ -1,7 +1,33 @@
 int main() {
-    int x;
-    x = 10 + 5 * 2;
-    int y;
-    y = x + (100 / 10);
-    return y;
+    print("1. Math and Variables:");
+    int a;
+    int b;
+    a = 10;
+    b = 20;
+    int c;
+    c = a * 2 + b / 2;
+    print("Result of (10*2 + 20/2):");
+    print(c);
+    
+    print("2. If-Else logic:");
+    if (c > 25) {
+        print("C is greater than 25!");
+    } else {
+        print("C is smaller!");
+    }
+    
+    print("3. While Loop (Count 0 to 2):");
+    int i;
+    i = 0;
+    while (i < 3) {
+        print(i);
+        i = i + 1;
+    }
+    
+    print("4. For Loop (Count 5 to 7):");
+    int j;
+    for (j = 5; j < 8; j = j + 1) {
+        print(j);
+    }
+    return 0;
 }

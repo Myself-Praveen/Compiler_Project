@@ -108,6 +108,15 @@ void check_semantics(ASTNode *node) {
         return;
     }
 
+    if(node->type == AST_RETURN) {
+        check_semantics(node->left);
+        return;
+    }
+    if(node->type == AST_PRINT) {
+        check_semantics(node->left);
+        return;
+    }
+
     if(node->type == AST_FUNC) {
         add_symbol(node->value, "Function");
         enter_scope();

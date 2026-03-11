@@ -1,0 +1,129 @@
+=========================================
+   PHASE 1: LEXICAL ANALYSIS (TOKENS)
+=========================================
+INT        int
+ID         main
+LPAREN     (
+RPAREN     )
+LBRACE     {
+INT        int
+ID         x
+SEMI       ;
+ID         x
+ASSIGN     =
+NUM        10
+PLUS       +
+NUM        5
+MUL        *
+NUM        2
+SEMI       ;
+INT        int
+ID         y
+SEMI       ;
+ID         y
+ASSIGN     =
+ID         x
+PLUS       +
+LPAREN     (
+NUM        100
+DIV        /
+NUM        10
+RPAREN     )
+SEMI       ;
+RETURN     return
+ID         y
+SEMI       ;
+RBRACE     }
+
+=========================================
+   PHASE 2: SYNTAX ANALYSIS (PARSING)
+=========================================
+Grammar validated successfully. No syntax errors found.
+
+=========================================
+   PHASE 3: ABSTRACT SYNTAX TREE (AST)
+=========================================
+Program
+└── Function(main)
+    └── Decl(x)
+        ├── Type(int)
+        └── Assign
+            ├── ID(x)
+            ├── BinOp(+)
+            │   ├── Value(10)
+            │   └── BinOp(*)
+            │       ├── Value(5)
+            │       └── Value(2)
+            └── Decl(y)
+                ├── Type(int)
+                └── Assign
+                    ├── ID(y)
+                    ├── BinOp(+)
+                    │   ├── ID(x)
+                    │   └── BinOp(/)
+                    │       ├── Value(100)
+                    │       └── Value(10)
+                    └── Return
+                        └── ID(y)
+
+=========================================
+   PHASE 4: SEMANTIC ANALYSIS (SYMBOL)
+=========================================
+NAME                 KIND            SCOPE      STATUS    
+----------------------------------------------------------
+main                 Function        0          Active    
+x                    int             1          Closed    
+y                    int             1          Closed    
+
+Semantics validated successfully. No errors found.
+
+=========================================
+   PHASE 5: INTERMEDIATE CODE (TAC)
+=========================================
+
+main:
+BeginFunc
+t0 = 5 * 2
+t1 = 10 + t0
+x = t1
+t2 = 100 / 10
+t3 = x + t2
+y = t3
+Return y
+EndFunc
+
+=========================================
+   PHASE 6: CODE OPTIMIZATION (AST/TAC)
+=========================================
+Applying Constant Folding Optimization...
+
+[ Optimized AST Structure ]
+Program
+└── Function(main)
+    └── Decl(x)
+        ├── Type(int)
+        └── Assign
+            ├── ID(x)
+            ├── Value(20)
+            └── Decl(y)
+                ├── Type(int)
+                └── Assign
+                    ├── ID(y)
+                    ├── BinOp(+)
+                    │   ├── ID(x)
+                    │   └── Value(10)
+                    └── Return
+                        └── ID(y)
+
+[ Optimized Intermediate Code (TAC) ]
+
+main:
+BeginFunc
+x = 20
+t0 = x + 10
+y = t0
+Return y
+EndFunc
+
+-----------------------------------------
+Compilation pipeline executed successfully.
