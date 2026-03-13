@@ -46,6 +46,7 @@
 "{"                 { printf("%-10s %s\n", "LBRACE",   yytext); return T_LBRACE; }
 "}"                 { printf("%-10s %s\n", "RBRACE",   yytext); return T_RBRACE; }
 ";"                 { printf("%-10s %s\n", "SEMI",     yytext); return T_SEMI; }
+","                 { printf("%-10s %s\n", "COMMA",    yytext); return T_COMMA; }
 
 [ \t\n\r]+          { }
 .                   { printf("Error: Unrecognized character '%s' on line %d\n", yytext, yylineno); }

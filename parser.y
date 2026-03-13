@@ -33,7 +33,7 @@ extern ASTNode *root;
 %token T_IF T_ELSE 
 %token T_PLUS T_MINUS T_MUL T_DIV T_INC T_DEC
 %token T_AND T_OR T_NOT
-%token T_LPAREN T_RPAREN T_LBRACE T_RBRACE
+%token T_LPAREN T_RPAREN T_LBRACE T_RBRACE T_COMMA
 
 %right T_ASSIGN
 %left T_OR
@@ -46,7 +46,7 @@ extern ASTNode *root;
 %nonassoc T_ELSE
 
 %type <str> type
-%type <node> program functions function statements statement declaration if_statement while_statement for_statement jump_statement return_statement expr_opt expression
+%type <node> program functions function statements statement declaration if_statement while_statement for_statement jump_statement return_statement expr_opt expression param_list param arg_list arguments
 
 %%
 
@@ -60,9 +60,31 @@ functions:
     ;
 
 function:
-    type T_ID T_LPAREN T_RPAREN T_LBRACE statements T_RBRACE { 
+    type T_ID T_LPAREN param_list T_RPAREN T_LBRACE statements T_RBRACE { 
+        $$ = create_node(AST_FUNC, $2);
+        $$->left = $4;
+        $$->body = $7; 
+    }
+    | type T_ID T_LPAREN T_RPAREN T_LBRACE statements T_RBRACE { 
         $$ = create_node(AST_FUNC, $2); 
         $$->body = $6; 
+    }
+    ;
+
+param_list:
+    param_list T_COMMA param {
+        $$ = $1;
+        ASTNode *curr = $$;
+        while(curr->next) curr = curr->next;
+        curr->next = $3;
+    }
+    | param { $$ = $1; }
+    ;
+
+param:
+    type T_ID {
+        $$ = create_node(AST_PARAM, $2);
+        $$->left = create_node(AST_TYPE, $1);
     }
     ;
 
@@ -187,9 +209,29 @@ expression:
     | T_DEC T_ID { $$ = create_node(AST_UNOP, "--"); $$->left = create_node(AST_ID, $2); }
     | T_ID T_DEC { $$ = create_node(AST_UNOP, "-- (post)"); $$->left = create_node(AST_ID, $1); }
     | T_LPAREN expression T_RPAREN   { $$ = $2; }
+    | T_ID T_LPAREN arguments T_RPAREN { $$ = create_node(AST_CALL, $1); $$->left = $3; }
     | T_ID                           { $$ = create_node(AST_ID, $1); }
     | T_NUM                          { $$ = create_node(AST_NUM, $1); }
     | T_STR                          { $$ = create_node(AST_STR, $1); }
+    ;
+
+arguments:
+    arg_list { $$ = $1; }
+    | { $$ = NULL; }
+    ;
+
+arg_list:
+    arg_list T_COMMA expression {
+        $$ = $1;
+        ASTNode *curr = $$;
+        while(curr->next) curr = curr->next;
+        curr->next = create_node(AST_ARG, "arg");
+        curr->next->left = $3;
+    }
+    | expression { 
+        $$ = create_node(AST_ARG, "arg"); 
+        $$->left = $1; 
+    }
     ;
 
 %%

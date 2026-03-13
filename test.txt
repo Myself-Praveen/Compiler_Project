@@ -1,33 +1,22 @@
+int mul(int val1, int val2, int offset) {
+    int result = (val1 * val2) + offset;
+    return result;
+}
+
 int main() {
-    print("1. Math and Variables:");
-    int a;
-    int b;
-    a = 10;
-    b = 20;
-    int c;
-    c = a * 2 + b / 2;
-    print("Result of (10*2 + 20/2):");
-    print(c);
+    print("Test: Function Calls & Arguments");
     
-    print("2. If-Else logic:");
-    if (c > 25) {
-        print("C is greater than 25!");
-    } else {
-        print("C is smaller!");
-    }
+    int x = 10;
+    int y = 5;
     
-    print("3. While Loop (Count 0 to 2):");
-    int i;
-    i = 0;
-    while (i < 3) {
-        print(i);
-        i = i + 1;
-    }
+    int answer1 = mul(x, y, 7);
+    int answer2 = mul(100, 2, 0);
     
-    print("4. For Loop (Count 5 to 7):");
-    int j;
-    for (j = 5; j < 8; j = j + 1) {
-        print(j);
-    }
+    print("10 * 5 + 7 =");
+    print(answer1);
+    
+    print("100 * 2 + 0 =");
+    print(answer2);
+    
     return 0;
 }

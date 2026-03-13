@@ -120,8 +120,28 @@ void check_semantics(ASTNode *node) {
     if(node->type == AST_FUNC) {
         add_symbol(node->value, "Function");
         enter_scope();
+        ASTNode *p = node->left;
+        while(p) {
+            if (p->type == AST_PARAM) {
+                add_symbol(p->value, p->left ? p->left->value : "unknown");
+            }
+            p = p->next;
+        }
         check_semantics(node->body);
         exit_scope();
+        check_semantics(node->next);
+        return;
+    }
+    
+    if (node->type == AST_CALL) {
+        if(!find_symbol(node->value)) {
+            // Optionally check if function exists, but we skip strict checks right now
+        }
+        ASTNode *arg = node->left;
+        while(arg) {
+            check_semantics(arg->left);
+            arg = arg->next;
+        }
         check_semantics(node->next);
         return;
     }

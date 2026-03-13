@@ -50,6 +50,9 @@ void print_ast_internal(FILE *out, ASTNode *node, char *prefix, int last_node, i
         case AST_STR: snprintf(buf, sizeof(buf), "String(%s)", node->value); break;
         case AST_TYPE: snprintf(buf, sizeof(buf), "Type(%s)", node->value); break;
         case AST_PRINT: snprintf(buf, sizeof(buf), "Print"); break;
+        case AST_PARAM: snprintf(buf, sizeof(buf), "Param(%s)", node->value); break;
+        case AST_CALL: snprintf(buf, sizeof(buf), "Call(%s)", node->value); break;
+        case AST_ARG: snprintf(buf, sizeof(buf), "Arg"); break;
         default: snprintf(buf, sizeof(buf), "Unknown"); break;
     }
     fprintf(out, "%s\n", buf);

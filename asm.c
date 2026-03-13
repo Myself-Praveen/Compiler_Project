@@ -13,6 +13,7 @@ typedef struct VarMap {
 VarMap *vars = NULL;
 int current_offset = 0;
 int asm_label_counter = 0;
+char current_function_name[64] = "";
 
 int get_offset(char *name) {
     VarMap *curr = vars;
@@ -50,79 +51,114 @@ void collectStrings(ASTNode *node) {
     collectStrings(node->next);
 }
 
-void generateExprAsm(ASTNode *node) {
-    if(!node) return;
+int current_reg = 0;
+
+int alloc_reg() {
+    if (current_reg > 6) {
+        printf("    ; ERROR: Register spill\n");
+        return 6; 
+    }
+    return current_reg++;
+}
+
+void free_reg() {
+    if (current_reg > 0) current_reg--;
+}
+
+int generateExprAsm(ASTNode *node) {
+    if(!node) return -1;
 
     if(node->type == AST_NUM) {
-        printf("    li a0, %s\n", node->value);
-        printf("    addi sp, sp, -4\n");
-        printf("    sw a0, 0(sp)\n"); // push a0
-        return;
+        int r = alloc_reg();
+        printf("    li t%d, %s\n", r, node->value);
+        return r;
     }
 
     if(node->type == AST_ID) {
         int off = get_offset(node->value);
-        printf("    lw a0, -%d(s0)\n", off);
-        printf("    addi sp, sp, -4\n");
-        printf("    sw a0, 0(sp)\n"); // push a0
-        return;
+        int r = alloc_reg();
+        printf("    lw t%d, -%d(s0)\n", r, off);
+        return r;
     }
 
     if(node->type == AST_BINOP) {
-        generateExprAsm(node->left);
-        generateExprAsm(node->right);
+        int r1 = generateExprAsm(node->left);
+        int r2 = generateExprAsm(node->right);
         
-        printf("    lw a1, 0(sp)\n"); // pop right into a1
-        printf("    addi sp, sp, 4\n");
-        printf("    lw a0, 0(sp)\n"); // pop left into a0
-        printf("    addi sp, sp, 4\n");
+        free_reg();
         
         if(strcmp(node->value, "+") == 0) {
-            printf("    add a0, a0, a1\n");
+            printf("    add t%d, t%d, t%d\n", r1, r1, r2);
         } else if(strcmp(node->value, "-") == 0) {
-            printf("    sub a0, a0, a1\n");
+            printf("    sub t%d, t%d, t%d\n", r1, r1, r2);
         } else if(strcmp(node->value, "*") == 0) {
-            printf("    mul a0, a0, a1\n");
+            printf("    mul t%d, t%d, t%d\n", r1, r1, r2);
         } else if(strcmp(node->value, "/") == 0) {
-            printf("    div a0, a0, a1\n");
+            printf("    div t%d, t%d, t%d\n", r1, r1, r2);
         } else if(strcmp(node->value, "==") == 0) {
-            printf("    sub a0, a0, a1\n");
-            printf("    seqz a0, a0\n");
+            printf("    sub t%d, t%d, t%d\n", r1, r1, r2);
+            printf("    seqz t%d, t%d\n", r1, r1);
         } else if(strcmp(node->value, "!=") == 0) {
-            printf("    sub a0, a0, a1\n");
-            printf("    snez a0, a0\n");
+            printf("    sub t%d, t%d, t%d\n", r1, r1, r2);
+            printf("    snez t%d, t%d\n", r1, r1);
         } else if(strcmp(node->value, ">") == 0) {
-            printf("    slt a0, a1, a0\n");
+            printf("    slt t%d, t%d, t%d\n", r1, r2, r1);
         } else if(strcmp(node->value, "<") == 0) {
-            printf("    slt a0, a0, a1\n");
+            printf("    slt t%d, t%d, t%d\n", r1, r1, r2);
         } else if(strcmp(node->value, ">=") == 0) {
-            printf("    slt a0, a0, a1\n");
-            printf("    xori a0, a0, 1\n");
+            printf("    slt t%d, t%d, t%d\n", r1, r1, r2);
+            printf("    xori t%d, t%d, 1\n", r1, r1);
         } else if(strcmp(node->value, "<=") == 0) {
-            printf("    slt a0, a1, a0\n");
-            printf("    xori a0, a0, 1\n"); 
+            printf("    slt t%d, t%d, t%d\n", r1, r2, r1);
+            printf("    xori t%d, t%d, 1\n", r1, r1); 
         }
         
-        printf("    addi sp, sp, -4\n");
-        printf("    sw a0, 0(sp)\n"); // push result
-        return;
+        return r1;
     }
 
     if(node->type == AST_UNOP) {
-        generateExprAsm(node->left);
-        printf("    lw a0, 0(sp)\n");
-        printf("    addi sp, sp, 4\n");
+        int r = generateExprAsm(node->left);
         
         if(strcmp(node->value, "!") == 0) {
-            printf("    seqz a0, a0\n");
+            printf("    seqz t%d, t%d\n", r, r);
         } else if(strcmp(node->value, "-") == 0) {
-            printf("    neg a0, a0\n");
+            printf("    neg t%d, t%d\n", r, r);
         }
         
-        printf("    addi sp, sp, -4\n");
-        printf("    sw a0, 0(sp)\n"); // push result
-        return;
+        return r;
     }
+    
+    if(node->type == AST_CALL) {
+        ASTNode *arg = node->left;
+        int arg_idx = 0;
+        int arg_regs[8]; 
+        while(arg) {
+            arg_regs[arg_idx++] = generateExprAsm(arg->left);
+            arg = arg->next;
+        }
+        for(int i=0; i<arg_idx; i++) {
+            printf("    mv a%d, t%d\n", i, arg_regs[i]);
+            free_reg(); 
+        }
+        int saved_regs = current_reg;
+        for(int i=0; i<saved_regs; i++) {
+            printf("    addi sp, sp, -4\n");
+            printf("    sw t%d, 0(sp)\n", i);
+        }
+        
+        printf("    call %s\n", node->value);
+        
+        for(int i=saved_regs-1; i>=0; i--) {
+            printf("    lw t%d, 0(sp)\n", i);
+            printf("    addi sp, sp, 4\n");
+        }
+        
+        int r = alloc_reg();
+        printf("    mv t%d, a0\n", r);
+        return r;
+    }
+
+    return -1;
 }
 
 char* generateStmtAsm(ASTNode *node) {
@@ -140,57 +176,85 @@ char* generateStmtAsm(ASTNode *node) {
         }
         printf(".text\n");
         printf(".globl main\n");
+        printf("    j main\n");
         generateStmtAsm(node->left);
         return NULL;
     }
 
     if(node->type == AST_FUNC) {
         printf("\n%s:\n", node->value);
-        printf("    addi sp, sp, -256\n"); // Allocate 256 byte stack frame
-        printf("    sw s0, 252(sp)\n");    // Save old frame pointer
-        printf("    addi s0, sp, 256\n");  // Set new frame pointer
+        printf("    addi sp, sp, -256\n");
+        printf("    sw ra, 252(sp)\n");
+        printf("    sw s0, 248(sp)\n");
+        printf("    addi s0, sp, 256\n");
+        int old_off = current_offset;
+        vars = NULL;
+        current_offset = 8;
+        char old_func_name[64];
+        strncpy(old_func_name, current_function_name, 63);
+        strncpy(current_function_name, node->value, 63);
+        
+        ASTNode *p = node->left;
+        int param_idx = 0;
+        while(p) {
+            int off = get_offset(p->value);
+            printf("    sw a%d, -%d(s0)\n", param_idx++, off);
+            p = p->next;
+        }
+
         generateStmtAsm(node->body);
+
+        if (strcmp(node->value, "main") == 0) {
+            printf("    li a7, 10\n");
+            printf("    ecall\n");
+        } else {
+            printf("    lw ra, 252(sp)\n");
+            printf("    lw s0, 248(sp)\n");
+            printf("    addi sp, sp, 256\n");
+            printf("    jr ra\n");
+        }
+        
+        vars = old_vars;
+        current_offset = old_off;
+        strncpy(current_function_name, old_func_name, 63);
+        
         return generateStmtAsm(node->next);
     }
 
     if(node->type == AST_VAR_DECL) {
         if(node->right) {
-            generateExprAsm(node->right);
+            int r = generateExprAsm(node->right);
             int off = get_offset(node->value);
-            printf("    lw a0, 0(sp)\n");
-            printf("    addi sp, sp, 4\n"); // pop
-            printf("    sw a0, -%d(s0)\n", off);
+            printf("    sw t%d, -%d(s0)\n", r, off);
+            free_reg();
         }
         return generateStmtAsm(node->next);
     }
 
     if(node->type == AST_ASSIGN) {
-        generateExprAsm(node->right);
+        int r = generateExprAsm(node->right);
         int off = get_offset(node->left->value);
-        printf("    lw a0, 0(sp)\n");
-        printf("    addi sp, sp, 4\n"); // pop
-        printf("    sw a0, -%d(s0)\n", off);
+        printf("    sw t%d, -%d(s0)\n", r, off);
+        free_reg();
         return generateStmtAsm(node->next);
     }
 
     if(node->type == AST_IF) {
-        generateExprAsm(node->cond);
+        int r = generateExprAsm(node->cond);
         int l_end = asm_label_counter++;
-        printf("    lw a0, 0(sp)\n");
-        printf("    addi sp, sp, 4\n");
-        printf("    beqz a0, .L%d\n", l_end);
+        printf("    beqz t%d, .L%d\n", r, l_end);
+        free_reg();
         generateStmtAsm(node->body);
         printf(".L%d:\n", l_end);
         return generateStmtAsm(node->next);
     }
     
     if(node->type == AST_IF_ELSE) {
-        generateExprAsm(node->cond);
+        int r = generateExprAsm(node->cond);
         int l_false = asm_label_counter++;
         int l_end = asm_label_counter++;
-        printf("    lw a0, 0(sp)\n");
-        printf("    addi sp, sp, 4\n");
-        printf("    beqz a0, .L%d\n", l_false);
+        printf("    beqz t%d, .L%d\n", r, l_false);
+        free_reg();
         generateStmtAsm(node->body); 
         printf("    j .L%d\n", l_end);
         printf(".L%d:\n", l_false);
@@ -203,10 +267,9 @@ char* generateStmtAsm(ASTNode *node) {
         int l_start = asm_label_counter++;
         int l_end = asm_label_counter++;
         printf(".L%d:\n", l_start);
-        generateExprAsm(node->cond);
-        printf("    lw a0, 0(sp)\n");
-        printf("    addi sp, sp, 4\n");
-        printf("    beqz a0, .L%d\n", l_end);
+        int r = generateExprAsm(node->cond);
+        printf("    beqz t%d, .L%d\n", r, l_end);
+        free_reg();
         generateStmtAsm(node->body);
         printf("    j .L%d\n", l_start);
         printf(".L%d:\n", l_end);
@@ -219,24 +282,21 @@ char* generateStmtAsm(ASTNode *node) {
         int l_end = asm_label_counter++;
         printf(".L%d:\n", l_start);
         if(node->cond) {
-            generateExprAsm(node->cond);
-            printf("    lw a0, 0(sp)\n");
-            printf("    addi sp, sp, 4\n");
-            printf("    beqz a0, .L%d\n", l_end);
+            int r = generateExprAsm(node->cond);
+            printf("    beqz t%d, .L%d\n", r, l_end);
+            free_reg();
         }
         generateStmtAsm(node->body);
         
         if (node->right) { 
             if (node->right->type == AST_ASSIGN) {
-                generateExprAsm(node->right->right);
+                int r = generateExprAsm(node->right->right);
                 int off = get_offset(node->right->left->value);
-                printf("    lw a0, 0(sp)\n");
-                printf("    addi sp, sp, 4\n");
-                printf("    sw a0, -%d(s0)\n", off);
+                printf("    sw t%d, -%d(s0)\n", r, off);
+                free_reg();
             } else if (node->right->type == AST_UNOP) {
-                generateExprAsm(node->right);
-                printf("    lw a0, 0(sp)\n");
-                printf("    addi sp, sp, 4\n"); // drop the value
+                int r = generateExprAsm(node->right);
+                free_reg();
             } else {
                 generateStmtAsm(node->right);
             }
@@ -259,11 +319,11 @@ char* generateStmtAsm(ASTNode *node) {
             printf("    li a7, 4\n");
             printf("    ecall\n");
         } else {
-            generateExprAsm(node->left);
-            printf("    lw a0, 0(sp)\n");
-            printf("    addi sp, sp, 4\n");
+            int r = generateExprAsm(node->left);
+            printf("    mv a0, t%d\n", r);
             printf("    li a7, 1\n");
             printf("    ecall\n");
+            free_reg();
         }
         
         printf("    li a0, 10\n");
@@ -274,8 +334,21 @@ char* generateStmtAsm(ASTNode *node) {
     }
 
     if(node->type == AST_RETURN) {
-        printf("    li a7, 10\n");
-        printf("    ecall\n");
+        if (node->left) {
+            int r = generateExprAsm(node->left);
+            printf("    mv a0, t%d\n", r);
+            free_reg();
+        }
+        
+        if(strcmp(current_function_name, "main") == 0) {
+            printf("    li a7, 10\n");
+            printf("    ecall\n");
+        } else {
+            printf("    lw ra, 252(sp)\n");
+            printf("    lw s0, 248(sp)\n");
+            printf("    addi sp, sp, 256\n");
+            printf("    jr ra\n");
+        }
         return generateStmtAsm(node->next);
     }
 
@@ -285,7 +358,7 @@ char* generateStmtAsm(ASTNode *node) {
 
 void generateAssembly(ASTNode *node) {
     vars = NULL;
-    current_offset = 0;
+    current_offset = 8;
     asm_label_counter = 0;
     str_count = 0;
     collectStrings(node);
