@@ -72,6 +72,137 @@ int main(){
 The compiler now dumps all 7 phases sequentially in one run, culminating in perfect simulation-ready RISC-V execution format:
 ```text
 =========================================
+   PHASE 1: LEXICAL ANALYSIS (TOKENS)
+=========================================
+INT        int
+ID         main
+LPAREN     (
+RPAREN     )
+LBRACE     {
+PRINT      print
+LPAREN     (
+STRING     "Hello World"
+RPAREN     )
+SEMI       ;
+INT        int
+ID         x
+ASSIGN     =
+NUM        10
+SEMI       ;
+INT        int
+ID         y
+ASSIGN     =
+NUM        20
+SEMI       ;
+INT        int
+ID         z
+ASSIGN     =
+ID         x
+PLUS       +
+ID         y
+SEMI       ;
+PRINT      print
+LPAREN     (
+ID         z
+RPAREN     )
+SEMI       ;
+RETURN     return
+NUM        0
+SEMI       ;
+RBRACE     }
+
+=========================================
+   PHASE 2: SYNTAX ANALYSIS (PARSING)
+=========================================
+Grammar validated successfully. No syntax errors found.
+
+=========================================
+   PHASE 3: ABSTRACT SYNTAX TREE (AST)
+=========================================
+Program
+└── Function(main)
+    └── Print
+        ├── String("Hello World")
+        └── Decl(x)
+            ├── Type(int)
+            ├── Value(10)
+            └── Decl(y)
+                ├── Type(int)
+                ├── Value(20)
+                └── Decl(z)
+                    ├── Type(int)
+                    ├── BinOp(+)
+                    │   ├── ID(x)
+                    │   └── ID(y)
+                    └── Print
+                        ├── ID(z)
+                        └── Return
+                            └── Value(0)
+
+=========================================
+   PHASE 4: SEMANTIC ANALYSIS (SYMBOL)
+=========================================
+NAME                 KIND            SCOPE      STATUS    
+----------------------------------------------------------
+main                 Function        0          Active    
+
+Semantics validated successfully. No errors found.
+
+=========================================
+   PHASE 5: INTERMEDIATE CODE (TAC)
+=========================================
+
+main:
+BeginFunc
+Print "Hello World"
+x = 10
+y = 20
+t0 = x + y
+z = t0
+Print z
+Return 0
+EndFunc
+
+=========================================
+   PHASE 6: CODE OPTIMIZATION (AST/TAC)
+=========================================
+Applying Constant Folding Optimization...
+
+[ Optimized AST Structure ]
+Program
+└── Function(main)
+    └── Print
+        ├── String("Hello World")
+        └── Decl(x)
+            ├── Type(int)
+            ├── Value(10)
+            └── Decl(y)
+                ├── Type(int)
+                ├── Value(20)
+                └── Decl(z)
+                    ├── Type(int)
+                    ├── BinOp(+)
+                    │   ├── ID(x)
+                    │   └── ID(y)
+                    └── Print
+                        ├── ID(z)
+                        └── Return
+                            └── Value(0)
+
+[ Optimized Intermediate Code (TAC) ]
+
+main:
+BeginFunc
+Print "Hello World"
+x = 10
+y = 20
+t0 = x + y
+z = t0
+Print z
+Return 0
+EndFunc
+
+=========================================
    PHASE 7: TARGET CODE GENERATION (ASM)
 =========================================
 ; === RISC-V 32-bit Architecture ===
@@ -115,6 +246,9 @@ main:
     ecall
     li a7, 10
     ecall
+
+-----------------------------------------
+Compilation pipeline executed successfully.
 ```
 
 ---
