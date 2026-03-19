@@ -191,6 +191,11 @@ char* generateStmtTAC(ASTNode *node) {
         return generateStmtTAC(node->next);
     }
 
+    else if(node->type == AST_UNOP || node->type == AST_BINOP || node->type == AST_CALL) {
+        generateExprTAC(node);
+        return generateStmtTAC(node->next);
+    }
+
     generateStmtTAC(node->next);
     return NULL;
 }

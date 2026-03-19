@@ -58,26 +58,12 @@ gcc parser.tab.c lex.yy.c ast.c tac.c symtab.c opt.c asm.c -o compiler.exe
 
 ### Example Test File (`test.txt`)
 ```c
-int mul(int val1, int val2, int offset) {
-    int result = (val1 * val2) + offset;
-    return result;
-}
-
-int main() {
-    print("Test: Function Calls & Arguments");
-    
+int main(){
+    print("Hello World");
     int x = 10;
-    int y = 5;
-    
-    int answer1 = mul(x, y, 7);
-    int answer2 = mul(100, 2, 0);
-    
-    print("10 * 5 + 7 =");
-    print(answer1);
-    
-    print("100 * 2 + 0 =");
-    print(answer2);
-    
+    int y = 20;
+    int z = x + y;
+    print(z);
     return 0;
 }
 ```
@@ -91,38 +77,11 @@ The compiler now dumps all 7 phases sequentially in one run, culminating in perf
 ; === RISC-V 32-bit Architecture ===
 .data
 .L0_str:
-    .asciiz "Test: Function Calls & Arguments"
-    .byte 0
-.L1_str:
-    .asciiz "10 * 5 + 7 ="
-    .byte 0
-.L2_str:
-    .asciiz "100 * 2 + 0 ="
+    .asciiz "Hello World"
     .byte 0
 .text
 .globl main
     j main
-
-mul:
-    addi sp, sp, -256
-    sw ra, 252(sp)
-    sw s0, 248(sp)
-    addi s0, sp, 256
-    sw a0, -12(s0)
-    sw a1, -16(s0)
-    sw a2, -20(s0)
-    lw t0, -12(s0)
-    lw t1, -16(s0)
-    mul t0, t0, t1
-    lw t1, -20(s0)
-    add t0, t0, t1
-    sw t0, -24(s0)
-    lw t0, -24(s0)
-    mv a0, t0
-    lw ra, 252(sp)
-    lw s0, 248(sp)
-    addi sp, sp, 256
-    jr ra
 
 main:
     addi sp, sp, -256
@@ -132,7 +91,30 @@ main:
     la a0, .L0_str
     li a7, 4
     ecall
-    ...
+    li a0, 10
+    li a7, 11
+    ecall
+    li t0, 10
+    sw t0, -12(s0)
+    li t0, 20
+    sw t0, -16(s0)
+    lw t0, -12(s0)
+    lw t1, -16(s0)
+    add t0, t0, t1
+    sw t0, -20(s0)
+    lw t0, -20(s0)
+    mv a0, t0
+    li a7, 1
+    ecall
+    li a0, 10
+    li a7, 11
+    ecall
+    li t0, 0
+    mv a0, t0
+    li a7, 10
+    ecall
+    li a7, 10
+    ecall
 ```
 
 ---

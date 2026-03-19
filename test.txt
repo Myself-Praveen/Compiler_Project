@@ -1,22 +1,9 @@
-int mul(int val1, int val2, int offset) {
-    int result = (val1 * val2) + offset;
-    return result;
-}
-
-int main() {
-    print("Test: Function Calls & Arguments");
-    
+int main(){
+    print("Hello World");
     int x = 10;
-    int y = 5;
-    
-    int answer1 = mul(x, y, 7);
-    int answer2 = mul(100, 2, 0);
-    
-    print("10 * 5 + 7 =");
-    print(answer1);
-    
-    print("100 * 2 + 0 =");
-    print(answer2);
-    
+    int y = 20;
+    int z = x + y;
+    print(z);
     return 0;
+
 }
