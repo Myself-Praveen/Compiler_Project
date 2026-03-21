@@ -116,10 +116,10 @@ num start(){
 ```
 
 ### Expected Output
-The LUMA compiler automatically traverses all 7 phases, cascading structurally until arriving at the executed Assembly format. It outputs visual logs detailing exactly what happens internally inside the Lexer, Parser, AST, Semantic Analyzer, TAC Optimizer, and Assembly Generator. Output executes flawlessly using Venus ( RISC-V simulation environment).
+The LUMA compiler automatically traverses all 7 phases, cascading structurally until arriving at the executed Assembly format. It outputs visual logs detailing exactly what happens internally. Below is the final generated Assembly output (Phase 7), perfectly formatted for the RISC-V simulator Venus.
 
-`	ext
-===========================================
+```text
+=========================================
    PHASE 7: TARGET CODE GENERATION (ASM)
 =========================================
 # === RISC-V 32-bit Architecture ===
@@ -605,4 +605,4 @@ main:
 
 -----------------------------------------
 Compilation pipeline executed successfully.
-`
+```
