@@ -9,6 +9,8 @@ typedef struct Symbol {
     char type[32];
     int scope;
     int is_active;
+    int is_watched;
+    int is_array;
     struct Symbol *next;
 } Symbol;
 
@@ -51,9 +53,17 @@ int add_symbol(const char *name, const char *type) {
     strncpy(new_sym->type, type, 31);
     new_sym->scope = current_scope;
     new_sym->is_active = 1;
+    new_sym->is_watched = 0;
+    new_sym->is_array = 0;
     new_sym->next = symtab_head;
     symtab_head = new_sym;
     
+    return 1;
+}
+
+int add_array_symbol(const char *name, const char *type) {
+    if (!add_symbol(name, type)) return 0;
+    symtab_head->is_array = 1;
     return 1;
 }
 
@@ -73,14 +83,24 @@ Symbol* find_symbol(const char *name) {
     return found;
 }
 
+void set_watched(const char *name) {
+    Symbol *sym = find_symbol(name);
+    if(sym) {
+        sym->is_watched = 1;
+    }
+}
+
 const char* get_expr_type(ASTNode *node) {
     if(!node) return "unknown";
     if(node->type == AST_NUM) {
         if(strchr(node->value, '.')) return "float";
-        return "int";
+        return "num";
     }
     if(node->type == AST_STR) {
         return "string";
+    }
+    if(node->type == AST_BOOL) {
+        return "flag";
     }
     if(node->type == AST_ID) {
         Symbol *sym = find_symbol(node->value);
@@ -91,10 +111,15 @@ const char* get_expr_type(ASTNode *node) {
         const char *ltype = get_expr_type(node->left);
         const char *rtype = get_expr_type(node->right);
         if(strcmp(ltype, "float") == 0 || strcmp(rtype, "float") == 0) return "float";
-        return "int";
+        return "num";
     }
     if(node->type == AST_UNOP) {
         return get_expr_type(node->left);
+    }
+    if(node->type == AST_ARRAY_ACCESS) {
+        Symbol *sym = find_symbol(node->value);
+        if(sym) return sym->type;
+        return "unknown";
     }
     return "unknown";
 }
@@ -134,9 +159,6 @@ void check_semantics(ASTNode *node) {
     }
     
     if (node->type == AST_CALL) {
-        if(!find_symbol(node->value)) {
-            // Optionally check if function exists, but we skip strict checks right now
-        }
         ASTNode *arg = node->left;
         while(arg) {
             check_semantics(arg->left);
@@ -175,6 +197,74 @@ void check_semantics(ASTNode *node) {
             }
         }
 
+        check_semantics(node->left);
+        check_semantics(node->right);
+        check_semantics(node->next);
+        return;
+    }
+
+    if(node->type == AST_ARRAY_DECL) {
+        char *decl_type = node->left ? node->left->value : "unknown";
+        if(!add_array_symbol(node->value, decl_type)) {
+            printf("Semantic Error: Multiple declarations of array '%s' in same scope.\n", node->value);
+            semantic_errors++;
+        }
+        check_semantics(node->next);
+        return;
+    }
+
+    if(node->type == AST_ARRAY_ACCESS) {
+        Symbol *sym = find_symbol(node->value);
+        if(!sym) {
+            printf("Semantic Error: Access to undeclared array '%s'.\n", node->value);
+            semantic_errors++;
+        }
+        check_semantics(node->next);
+        return;
+    }
+
+    if(node->type == AST_ARRAY_ASSIGN) {
+        Symbol *sym = find_symbol(node->value);
+        if(!sym) {
+            printf("Semantic Error: Assignment to undeclared array '%s'.\n", node->value);
+            semantic_errors++;
+        }
+        check_semantics(node->right);
+        check_semantics(node->next);
+        return;
+    }
+
+    if(node->type == AST_WATCH) {
+        Symbol *sym = find_symbol(node->value);
+        if(!sym) {
+            printf("Semantic Error: Watch on undeclared variable '%s'.\n", node->value);
+            semantic_errors++;
+        } else {
+            set_watched(node->value);
+        }
+        check_semantics(node->next);
+        return;
+    }
+
+    if(node->type == AST_REWIND) {
+        Symbol *sym = find_symbol(node->value);
+        if(!sym) {
+            printf("Semantic Error: Rewind on undeclared variable '%s'.\n", node->value);
+            semantic_errors++;
+        } else if(!sym->is_watched) {
+            printf("Semantic Error: Rewind requires 'watch' on variable '%s' first.\n", node->value);
+            semantic_errors++;
+        }
+        check_semantics(node->next);
+        return;
+    }
+
+    if(node->type == AST_GC_COLLECT) {
+        check_semantics(node->next);
+        return;
+    }
+
+    if(node->type == AST_PIPELINE) {
         check_semantics(node->left);
         check_semantics(node->right);
         check_semantics(node->next);
@@ -222,8 +312,8 @@ int get_semantic_errors() {
 }
 
 void print_symtab() {
-    printf("%-20s %-15s %-10s %-10s\n", "NAME", "KIND", "SCOPE", "STATUS");
-    printf("----------------------------------------------------------\n");
+    printf("%-20s %-15s %-10s %-10s %-10s\n", "NAME", "KIND", "SCOPE", "STATUS", "FLAGS");
+    printf("----------------------------------------------------------------------\n");
     
     Symbol *curr = symtab_head;
     int count = 0;
@@ -236,7 +326,11 @@ void print_symtab() {
     for(int i=count-1; i>=0; i--) { arr[i] = curr; curr = curr->next; }
     
     for(int i=0; i<count; i++) {
-        printf("%-20s %-15s %-10d %-10s\n", arr[i]->name, arr[i]->type, arr[i]->scope, arr[i]->is_active ? "Active" : "Closed");
+        char flags[64] = "";
+        if(arr[i]->is_watched) strcat(flags, "watched ");
+        if(arr[i]->is_array) strcat(flags, "array ");
+        if(strlen(flags) == 0) strcpy(flags, "-");
+        printf("%-20s %-15s %-10d %-10s %-10s\n", arr[i]->name, arr[i]->type, arr[i]->scope, arr[i]->is_active ? "Active" : "Closed", flags);
     }
     free(arr);
 }

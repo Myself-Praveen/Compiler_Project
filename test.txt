@@ -1,9 +1,65 @@
-int main(){
-    print("Hello World");
-    int x = 10;
-    int y = 20;
-    int z = x + y;
-    print(z);
-    return 0;
+num mul(num a, num b){
+    return a * b;
+}
 
+num start(){
+    show("Hello LUMA!");
+
+    num x = 10;
+    num y = 20;
+    num z = x + y;
+    show(z);
+    num c= mul(x,y);
+    show(c);
+
+    num p = 2 ** 8;
+    show(p);
+
+    num arr[5];
+    arr[0] = 100;
+    arr[1] = 200;
+    show(arr[0]);
+
+    num grid[3,3];
+    grid[0,0] = 1;
+    grid[0,1] = 2;
+    grid[0,2] = 3;
+    grid[1,0] = 4;
+    grid[1,1] = 5;
+    grid[1,2] = 6;
+    grid[2,0] = 7;
+    grid[2,1] = 8;
+    grid[2,2] = 9;
+    show(grid[0,0]);
+    show(grid[0,1]);
+    show(grid[0,2]);
+    show(grid[1,0]);
+    show(grid[1,1]);
+    show(grid[1,2]);
+    show(grid[2,0]);
+    show(grid[2,1]);
+    show(grid[2,2]);
+
+    watch x;
+
+    x = 5;
+    x = 10;
+    rewind x;
+    show(x);
+
+    check(z > 25){
+        show("z is big");
+    } otherwise {
+        show("z is small");
+    }
+
+    num i = 0;
+    while(i < 5){
+        show(i);
+        i++;
+    }
+
+    gc_collect();
+
+    return 0;
 }

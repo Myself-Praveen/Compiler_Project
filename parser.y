@@ -27,26 +27,30 @@ extern ASTNode *root;
     struct ASTNode *node;
 }
 
-%token <str> T_ID T_NUM T_INT T_FLOAT T_STR
+%token <str> T_ID T_NUM T_INT T_FLOAT T_STR T_BOOL
 %token T_RETURN T_PRINT T_WHILE T_FOR T_BREAK T_CONTINUE
 %token T_ASSIGN T_SEMI T_EQ T_NEQ T_GT T_LT T_GE T_LE
 %token T_IF T_ELSE 
-%token T_PLUS T_MINUS T_MUL T_DIV T_INC T_DEC
+%token T_PLUS T_MINUS T_MUL T_DIV T_INC T_DEC T_EXP
 %token T_AND T_OR T_NOT
 %token T_LPAREN T_RPAREN T_LBRACE T_RBRACE T_COMMA
+%token T_LBRACKET T_RBRACKET
+%token T_WATCH T_REWIND T_GC_COLLECT T_PIPE
 
 %right T_ASSIGN
+%left T_PIPE
 %left T_OR
 %left T_AND
 %left T_EQ T_NEQ
 %left T_GT T_LT T_GE T_LE
 %left T_PLUS T_MINUS
 %left T_MUL T_DIV
+%right T_EXP
 %right T_NOT T_INC T_DEC UMINUS
 %nonassoc T_ELSE
 
 %type <str> type
-%type <node> program functions function statements statement declaration if_statement while_statement for_statement jump_statement return_statement expr_opt expression param_list param arg_list arguments
+%type <node> program functions function statements statement declaration if_statement while_statement for_statement jump_statement return_statement expr_opt expression param_list param arg_list arguments array_dims
 
 %%
 
@@ -89,8 +93,9 @@ param:
     ;
 
 type:
-    T_INT { $$ = "int"; }
+    T_INT { $$ = "num"; }
     | T_FLOAT { $$ = "float"; }
+    | T_BOOL { $$ = "flag"; }
     ;
 
 statements:
@@ -112,7 +117,15 @@ statement:
     | for_statement { $$ = $1; }
     | jump_statement { $$ = $1; }
     | return_statement { $$ = $1; }
-    | T_PRINT expression T_SEMI { $$ = create_node(AST_PRINT, "print"); $$->left = $2; }
+    | T_PRINT expression T_SEMI { $$ = create_node(AST_PRINT, "show"); $$->left = $2; }
+    | T_WATCH T_ID T_SEMI { $$ = create_node(AST_WATCH, $2); }
+    | T_REWIND T_ID T_SEMI { $$ = create_node(AST_REWIND, $2); }
+    | T_GC_COLLECT T_LPAREN T_RPAREN T_SEMI { $$ = create_node(AST_GC_COLLECT, "gc_collect"); }
+    | T_ID T_LBRACKET array_dims T_RBRACKET T_ASSIGN expression T_SEMI {
+        $$ = create_node(AST_ARRAY_ASSIGN, $1);
+        $$->index = $3;
+        $$->right = $6;
+    }
     | expr_opt T_SEMI { $$ = $1; }
     ;
 
@@ -126,16 +139,32 @@ declaration:
         $$->left = create_node(AST_TYPE, $1);
         $$->right = $4; 
     }
+    | type T_ID T_LBRACKET array_dims T_RBRACKET T_SEMI {
+        $$ = create_node(AST_ARRAY_DECL, $2);
+        $$->left = create_node(AST_TYPE, $1);
+        $$->index = $4;
+    }
     ;
+
+array_dims:
+    expression { $$ = $1; }
+    | array_dims T_COMMA expression {
+        $$ = $1;
+        ASTNode *curr = $$;
+        while(curr->next) curr = curr->next;
+        curr->next = $3;
+    }
+    ;
+
 
 if_statement:
     T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE {
-        $$ = create_node(AST_IF, "if");
+        $$ = create_node(AST_IF, "check");
         $$->cond = $3;
         $$->body = $6;
     }
     | T_IF T_LPAREN expression T_RPAREN T_LBRACE statements T_RBRACE T_ELSE T_LBRACE statements T_RBRACE {
-        $$ = create_node(AST_IF_ELSE, "if-else");
+        $$ = create_node(AST_IF_ELSE, "check-otherwise");
         $$->cond = $3;
         $$->body = $6;
         $$->else_body = $10;
@@ -190,10 +219,16 @@ expression:
         $$->left = create_node(AST_ID, $1);
         $$->right = $3;
     }
+    | expression T_PIPE expression {
+        $$ = create_node(AST_PIPELINE, "|>");
+        $$->left = $1;
+        $$->right = $3;
+    }
     | expression T_PLUS expression   { $$ = create_node(AST_BINOP, "+"); $$->left = $1; $$->right = $3; }
     | expression T_MINUS expression  { $$ = create_node(AST_BINOP, "-"); $$->left = $1; $$->right = $3; }
     | expression T_MUL expression    { $$ = create_node(AST_BINOP, "*"); $$->left = $1; $$->right = $3; }
     | expression T_DIV expression    { $$ = create_node(AST_BINOP, "/"); $$->left = $1; $$->right = $3; }
+    | expression T_EXP expression   { $$ = create_node(AST_BINOP, "**"); $$->left = $1; $$->right = $3; }
     | expression T_EQ expression     { $$ = create_node(AST_BINOP, "=="); $$->left = $1; $$->right = $3; }
     | expression T_NEQ expression    { $$ = create_node(AST_BINOP, "!="); $$->left = $1; $$->right = $3; }
     | expression T_GT expression     { $$ = create_node(AST_BINOP, ">"); $$->left = $1; $$->right = $3; }
@@ -210,6 +245,10 @@ expression:
     | T_ID T_DEC { $$ = create_node(AST_UNOP, "-- (post)"); $$->left = create_node(AST_ID, $1); }
     | T_LPAREN expression T_RPAREN   { $$ = $2; }
     | T_ID T_LPAREN arguments T_RPAREN { $$ = create_node(AST_CALL, $1); $$->left = $3; }
+    | T_ID T_LBRACKET array_dims T_RBRACKET {
+        $$ = create_node(AST_ARRAY_ACCESS, $1);
+        $$->index = $3;
+    }
     | T_ID                           { $$ = create_node(AST_ID, $1); }
     | T_NUM                          { $$ = create_node(AST_NUM, $1); }
     | T_STR                          { $$ = create_node(AST_STR, $1); }

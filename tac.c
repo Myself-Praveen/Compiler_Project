@@ -22,7 +22,7 @@ char* newLabel() {
 char* generateExprTAC(ASTNode *node) {
     if(!node) return NULL;
 
-    if(node->type == AST_ID || node->type == AST_NUM || node->type == AST_STR) {
+    if(node->type == AST_ID || node->type == AST_NUM || node->type == AST_STR || node->type == AST_BOOL) {
         return node->value;
     }
 
@@ -31,6 +31,7 @@ char* generateExprTAC(ASTNode *node) {
            strcmp(node->value, "-") == 0 || 
            strcmp(node->value, "*") == 0 ||
            strcmp(node->value, "/") == 0 || 
+           strcmp(node->value, "**") == 0 ||
            strcmp(node->value, ">") == 0 ||
            strcmp(node->value, "<") == 0 ||
            strcmp(node->value, ">=") == 0 ||
@@ -52,6 +53,47 @@ char* generateExprTAC(ASTNode *node) {
         char* left = generateExprTAC(node->left);
         char* temp = newTemp();
         printf("%s = %s%s\n", temp, node->value, left);
+        return temp;
+    }
+
+    if(node->type == AST_ARRAY_ACCESS) {
+        ASTNode *idx = node->index;
+        /* Print all indices comma-separated */
+        char idx_buf[256] = "";
+        while(idx) {
+            char *ix = generateExprTAC(idx);
+            if(strlen(idx_buf) > 0) strcat(idx_buf, ",");
+            strcat(idx_buf, ix);
+            idx = idx->next;
+        }
+        char* temp = newTemp();
+        printf("%s = %s[%s]\n", temp, node->value, idx_buf);
+        return temp;
+    }
+
+    if(node->type == AST_PIPELINE) {
+        char* left_val = generateExprTAC(node->left);
+        char* temp = newTemp();
+        if(node->right && node->right->type == AST_CALL) {
+            printf("%s = %s |> %s()\n", temp, left_val, node->right->value);
+        } else {
+            char* right_val = generateExprTAC(node->right);
+            printf("%s = %s |> %s\n", temp, left_val, right_val);
+        }
+        return temp;
+    }
+
+    if(node->type == AST_CALL) {
+        ASTNode *arg = node->left;
+        int idx = 0;
+        while(arg) {
+            char *a = generateExprTAC(arg->left);
+            printf("Param %s\n", a);
+            arg = arg->next;
+            idx++;
+        }
+        char *temp = newTemp();
+        printf("%s = Call %s, %d\n", temp, node->value, idx);
         return temp;
     }
 
@@ -91,7 +133,7 @@ char* generateStmtTAC(ASTNode *node) {
     }
     else if(node->type == AST_PRINT) {
         char* valTemp = generateExprTAC(node->left);
-        printf("Print %s\n", valTemp);
+        printf("Show %s\n", valTemp);
         return generateStmtTAC(node->next);
     }
 
@@ -100,6 +142,32 @@ char* generateStmtTAC(ASTNode *node) {
             char* right = generateExprTAC(node->right);
             printf("%s = %s\n", node->value, right);
         }
+        return generateStmtTAC(node->next);
+    }
+
+    else if(node->type == AST_ARRAY_DECL) {
+        ASTNode *dim = node->index;
+        int d = 0;
+        while(dim) {
+            char *sz = generateExprTAC(dim);
+            printf("ArrayAlloc %s, dim[%d] = %s\n", node->value, d, sz);
+            d++;
+            dim = dim->next;
+        }
+        return generateStmtTAC(node->next);
+    }
+
+    else if(node->type == AST_ARRAY_ASSIGN) {
+        ASTNode *idx = node->index;
+        char idx_buf[256] = "";
+        while(idx) {
+            char *ix = generateExprTAC(idx);
+            if(strlen(idx_buf) > 0) strcat(idx_buf, ",");
+            strcat(idx_buf, ix);
+            idx = idx->next;
+        }
+        char *val = generateExprTAC(node->right);
+        printf("%s[%s] = %s\n", node->value, idx_buf, val);
         return generateStmtTAC(node->next);
     }
 
@@ -178,6 +246,21 @@ char* generateStmtTAC(ASTNode *node) {
             printf("%s:\n", lend);
         }
 
+        return generateStmtTAC(node->next);
+    }
+
+    else if(node->type == AST_WATCH) {
+        printf("Watch %s\n", node->value);
+        return generateStmtTAC(node->next);
+    }
+
+    else if(node->type == AST_REWIND) {
+        printf("Rewind %s\n", node->value);
+        return generateStmtTAC(node->next);
+    }
+
+    else if(node->type == AST_GC_COLLECT) {
+        printf("GC_Collect\n");
         return generateStmtTAC(node->next);
     }
 

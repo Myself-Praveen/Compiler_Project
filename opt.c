@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <math.h>
 #include "ast.h"
 #include "opt.h"
 
@@ -12,6 +13,7 @@ void optimize_ast(ASTNode *node) {
     optimize_ast(node->cond);
     optimize_ast(node->body);
     optimize_ast(node->else_body);
+    optimize_ast(node->index);
 
     if (node->type == AST_BINOP) {
         if (node->left && node->left->type == AST_NUM &&
@@ -30,6 +32,7 @@ void optimize_ast(ASTNode *node) {
                 else if (strcmp(node->value, "-") == 0) result = left_val - right_val;
                 else if (strcmp(node->value, "*") == 0) result = left_val * right_val;
                 else if (strcmp(node->value, "/") == 0 && right_val != 0) result = left_val / right_val;
+                else if (strcmp(node->value, "**") == 0) result = (int)pow((double)left_val, (double)right_val);
                 else valid = 0;
 
                 if (valid) {
@@ -53,6 +56,7 @@ void optimize_ast(ASTNode *node) {
                 else if (strcmp(node->value, "-") == 0) result = left_val - right_val;
                 else if (strcmp(node->value, "*") == 0) result = left_val * right_val;
                 else if (strcmp(node->value, "/") == 0 && right_val != 0.0f) result = left_val / right_val;
+                else if (strcmp(node->value, "**") == 0) result = powf(left_val, right_val);
                 else valid = 0;
 
                 if (valid) {
