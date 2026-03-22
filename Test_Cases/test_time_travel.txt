@@ -1,0 +1,17 @@
+num start() {
+    num target = 100;
+    
+    watch target; 
+
+    target = 200; 
+    target = 300; 
+    target = 400; 
+    target = 500; 
+
+    
+    rewind target; 
+    
+    show(target); 
+
+    return 0;
+}

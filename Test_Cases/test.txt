@@ -1,0 +1,36 @@
+num mul(num a, num b){
+    return a * b;
+}
+
+num start(){
+    show("Hello LUMA!");
+
+    num x = 10;
+    num y = 20;
+    num z = x + y;
+    show(z);
+
+    num c = mul(x, y);
+    show(c);
+
+    watch x;
+
+    x = 5;
+    x = 10;
+    rewind x;
+    show(x);
+
+    check(z > 25){
+        show("z is big");
+    } otherwise {
+        show("z is small");
+    }
+
+    num i = 0;
+    while(i < 5){
+        show(i);
+        i++;
+    }
+
+    return 0;
+}

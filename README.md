@@ -32,7 +32,7 @@ The grammar supports standard C-like architectures, augmented with modern conven
 | `tac.h` / `tac.c` | Three-Address-Code (TAC) generation resolving branches into intermediate math. |
 | `opt.h` / `opt.c` | Code Optimizer for resolving math constraints. |
 | `asm.h` / `asm.c` | Phase 7 backend mapping TAC logic into pure RISC-V 32-bit Assembly. |
-| `test_*.txt` | Multiple sample LUMA source scripts exercising math, loops, logic, and time travel. |
+| `Test_Cases/test_*.txt` | Multiple sample LUMA source scripts exercising math, loops, logic, and time travel. |
 | `Compiler_Report.tex` | A highly polished 10-page LaTeX report documenting the compiler. |
 
 ---
@@ -52,17 +52,16 @@ win_flex lexer.l
 gcc parser.tab.c lex.yy.c ast.c tac.c symtab.c opt.c asm.c -o compiler.exe
 ```
 
-**3. Run the Compiler**
+**3. Run the Compiler on a Test Script**
 ```powershell
-.\compiler.exe test_loop_for.txt
+.\compiler.exe Test_Cases\test_loop_for.txt
 ```
 
-### Example LUMA Code (`test_loop_for.txt`)
+### Example LUMA Code (`Test_Cases\test_loop_for.txt`)
 ```c
 num start() {
     num sum = 0;
     
-    // Nested for-loops mapping a right triangle design
     for (num i = 1; i <= 10; i++) {
         for(num j=i+1;j<=10;j++){
             show("*");
