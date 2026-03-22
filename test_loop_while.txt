@@ -1,0 +1,15 @@
+num start() {
+    num count = 5;
+    num factorial = 1;
+
+    // Calculate factorial of 5 using a while loop
+    while (count > 0) {
+        factorial = factorial * count;
+        count--;
+
+        show("hello\n");
+    }
+
+    show(factorial); // Should output 120
+    return 0;
+}

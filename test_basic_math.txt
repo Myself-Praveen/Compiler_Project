@@ -1,0 +1,22 @@
+num add(num a, num b, num c){
+    return a+b+c;
+}
+
+num start() {
+    num a = 15;
+    num b = 10;
+    num c = a * b; // 150
+    num d = a / 3; // 5
+
+    check (c > 100) {
+        show(c);
+    } otherwise {
+        show(d);
+    }
+    show("\n");
+    num e= 10;
+    num x= add(a+b+e);
+    show(x);
+
+    return 0;
+}

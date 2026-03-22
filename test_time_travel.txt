@@ -1,0 +1,17 @@
+num start() {
+    num target = 100;
+    
+    watch target; // Initiate observation 
+
+    target = 200; // history[0] = 100
+    target = 300; // history[1] = 200
+    target = 400; // history[2] = 300
+    target = 500; // history[3] = 400
+
+    // Revert target back to its state *before* assigning 500
+    rewind target; 
+    
+    show(target); // Should output 400
+
+    return 0;
+}

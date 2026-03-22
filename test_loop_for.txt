@@ -1,0 +1,13 @@
+num start() {
+    num sum = 0;
+    
+    // Calculate the sum of integers from 1 to 10
+    for (num i = 1; i <= 10; i++) {
+        for(num j=i+1;j<=10;j++){
+            show("*");
+        }
+        show("\n");
+    }
+
+    return 0;
+}
